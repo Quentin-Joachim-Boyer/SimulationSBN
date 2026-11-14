@@ -103,4 +103,92 @@ Réfutation : moyenne inférieure à +40, ou moins de 18 populations. Les trois 
 
 ## Résultat
 
-À remplir.
+`python experiments/moteurs_lecteurs/run.py`, graine 0, 24 populations par régime,
+20 000 pas, moyennes de la seconde moitié ± écart-type entre populations. Aucune extinction.
+
+|                             | Mélangé retardé | Mélangé immédiat | Espace retardé | Espace immédiat | Neutre        |
+|-----------------------------|-----------------|------------------|----------------|-----------------|---------------|
+| Effectif                    | 294             | 294              | 160            | 173             | 400           |
+| P(bouger, capteur 0)        | 0,2 %           | 0,2 %            | 77,1 ± 20,7 %  | 98,3 ± 0,5 %    | 30,6 ± 14,2 % |
+| P(bouger, capteur 1)        | 0,2 %           | 0,2 %            | 54,5 ± 4,5 %   | 43,0 ± 1,7 %    | 39,3 ± 15,5 % |
+| **Dépendance au contexte**  | 0,0             | 0,0              | +22,6 ± 22,2   | +55,3 ± 2,0     | -8,7 ± 7,7    |
+| Nœud de contrôle (cerveau)  | 14,9 ± 10,2 %   | 18,0 ± 15,2 %    | 8,7 ± 12,6 %   | 13,0 ± 16,3 %   | 7,9 ± 7,7 %   |
+| PSBN (cerveau)              | 4,3 ± 5,2 %     | 4,5 ± 4,6 %      | 1,4 ± 3,0 %    | 4,4 ± 6,0 %     | 2,8 ± 4,0 %   |
+| Scission SBN                | 11,3 ± 14,2 %   | 9,1 ± 8,5 %      | 16,2 ± 23,0 %  | 5,4 ± 16,3 %    | 10,9 ± 7,2 %  |
+| Contrôle interne            | 16,1 ± 10,5 %   | 19,1 ± 14,8 %    | 10,2 ± 13,4 %  | 15,1 ± 16,0 %   | 9,1 ± 7,7 %   |
+
+Valeurs p contre le régime neutre :
+
+|                        | Mélangé retardé | Mélangé immédiat | Espace retardé | Espace immédiat |
+|------------------------|-----------------|------------------|----------------|-----------------|
+| Dépendance au contexte | < 0,0001        | < 0,0001         | < 0,0001       | < 0,0001        |
+| Nœud de contrôle       | 0,0115          | 0,0053           | 0,81           | 0,19            |
+| PSBN                   | 0,27            | 0,20             | 0,19           | 0,30            |
+| Scission SBN           | 0,90            | 0,44             | 0,29           | 0,16            |
+| Contrôle interne       | 0,013           | 0,0047           | 0,73           | 0,12            |
+
+- **Hypothèse 1 : réfutée.** En régime mélangé, les nœuds de contrôle restent enrichis
+  avec des lecteurs : 18,0 % en lecture immédiate contre 7,9 % en neutre (p = 0,0053),
+  14,9 % en lecture retardée (p = 0,0115, même sens, juste au-dessus du seuil). Ni l'une
+  ni l'autre ne se distingue de la lecture directe (17,6 % ; p = 0,91 et p = 0,33). Mon
+  soupçon était faux : l'enrichissement ne vient pas de ce que les actions logeaient
+  dans le cerveau. Le contrôle interne suit (p = 0,0047 et p = 0,013).
+  En revanche l'enrichissement en PSBN n'est pas retrouvé : 4,3 % et 4,5 % contre 2,8 %
+  en neutre (p = 0,27 et p = 0,20), au lieu de 7,8 % en lecture directe. L'écart avec la
+  lecture directe est à p = 0,023 et p = 0,019, au-dessus du seuil : indécis.
+- **Hypothèse 2 : confirmée pour la dépendance, pas pour le motif.** En lecture
+  immédiate, la dépendance est de +55,3 points (+50,6 en lecture directe, p = 0,028),
+  avec les mêmes fréquences de déplacement (98 % et 43 %). Le motif « allumé, oscille »
+  est porté par 46,3 % des agents finaux (0,6 % en neutre, p < 0,0001), mais il n'est
+  majoritaire que dans 11 populations sur 24, et non dans plus de la moitié.
+- **Hypothèse 3 : confirmée telle qu'écrite, mais mon raisonnement était trop simple.**
+  En lecture retardée, la dépendance (+22,6) est bien plus faible qu'en lecture immédiate
+  (p < 0,0001). Elle reste pourtant très au-dessus du régime neutre : réagir tard paie
+  encore. Voir la prolongation.
+- **Hypothèse 4 : confirmée.** En régime espace, aucune mesure de structure n'est enrichie
+  (p ≥ 0,12), quelle que soit la lecture.
+- **Sans prédiction.** Aucune extinction. Le délai coûte environ 7 % d'effectif en régime
+  espace (160 contre 173).
+
+Le régime neutre est compatible avec la loi uniforme (8,49 %, 2,49 %, 12,14 %, 9,79 %).
+
+### Prolongation
+
+`python experiments/moteurs_lecteurs/prolongation.py`, mêmes 24 populations jusqu'à
+100 000 pas. Sur les pas 10 001 à 20 000 on retrouve +22,6 ± 22,2 : ce sont bien les
+mêmes populations.
+
+- **Hypothèse 6 : réfutée.** Sur les 10 000 derniers pas, la dépendance moyenne est de
+  +34,2 ± 17,7 points, et 13 populations sur 24 dépassent +40 (il en fallait 18).
+- Ce que montre la figure, et que je n'avais pas prévu : chaque population bascule,
+  dans les deux sens et à plusieurs reprises, entre deux états, l'un vers +50 points et
+  l'autre vers -18. Les effectifs sont les mêmes dans les deux états (160 contre 160).
+- Au pas 20 000, les populations du premier état portent surtout le motif « allumé,
+  oscille » (56 % à 92 % des agents). Celles du second bougent 38 % du temps après un
+  capteur à 0 et environ 50 % après un capteur à 1. C'est compatible avec un rythme
+  aveugle d'un pas sur deux, dont la phase suffirait à expliquer l'écart négatif, mais
+  je ne l'ai pas établi : leur motif dominant est « variable », il dépend de l'état de
+  départ du cerveau.
+- Lecture : avec une réaction en deux pas, la stratégie qui dépend du contexte n'a plus
+  d'avantage net sur l'autre état. Le délai ne fait pas que ralentir son évolution.
+
+### Limites
+
+- Une graine. Quarante tests, le seuil de 0,01 ne valait que pour les hypothèses.
+- La prolongation a été décidée après avoir vu la première figure ; son hypothèse a été
+  écrite avant de la lancer.
+- Le second état du régime retardé n'est pas identifié : ni son génotype type, ni ce
+  qui le rend aussi viable que la stratégie sensible au contexte.
+- Les mesures de structure sont très dispersées entre populations (écarts-types de 8 à
+  23 points) : un effet modeste passerait inaperçu.
+- Avec 18 poids au lieu de 12, le cerveau reçoit moins de mutations qu'en lecture directe.
+
+## Suites possibles
+
+- Plusieurs pas d'agent pour un pas du milieu (prévu par Quentin) : la réaction en deux
+  pas du réseau tiendrait alors dans un pas du monde. Prédiction à poser : on retrouve
+  le comportement de la lecture immédiate.
+- Moteurs de direction et capteurs qui indiquent une direction ; le code des directions
+  additionnées existe et est testé.
+- Régime mélangé : chercher quels nœuds du cerveau deviennent nœuds de contrôle, puisque
+  ce ne sont pas des nœuds d'action.

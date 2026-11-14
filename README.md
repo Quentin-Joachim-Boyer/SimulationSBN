@@ -30,7 +30,8 @@ Le paquet `simsbn` (dans `src/`), implémentation de référence en NumPy :
 | `agents` | architecture entrée / cerveau / moteur, comme SBN à topologie contrainte |
 | `simulability` | cible simulée par un cerveau sur ses nœuds visibles |
 | `milieu` | milieu partagé à deux ressources : énergie, mort, division, viabilité en solitaire |
-| `monde` | monde en grille (2D, ou 1 × 1 pour un milieu bien mélangé) : nourriture, déchet toxique, déplacement, capteur de bien-être |
+| `monde` | monde en grille (2D, ou 1 × 1 pour un milieu bien mélangé) : nourriture, déchet toxique, déplacement, capteur de bien-être ; actions lues sur le cerveau ou par des moteurs lecteurs (`Corps`) |
+| `suivi` | relevés d'une population qui vit dans un monde : démographie, comportement, structure |
 | `structure` | mesures de structure d'un agent à un capteur, loi uniforme exacte du cerveau seul |
 | `stats` | test par permutation, une population étant l'unité |
 | `tasks` | contextes, trajectoires et score d'un agent |
@@ -92,6 +93,13 @@ dans un monde en 2D où les agents se déplacent, et en régime neutre. `voir.py
 des populations mesurées dans une page à ouvrir dans un navigateur : on y suit un agent,
 son cerveau et son activité pas à pas. Journal : `journal/2026-11-14_monde-dechet.md`.
 
+    python experiments/moteurs_lecteurs/run.py           # environ 5 minutes sur 2 cœurs
+    python experiments/moteurs_lecteurs/prolongation.py  # environ 6 minutes
+
+Même monde, mais les actions sont portées par des nœuds lecteurs : ils lisent le cerveau
+et rien ne revient d'eux. Lecture retardée (nœud SBN ordinaire, réaction en deux pas) ou
+immédiate. Journal : `journal/2026-11-15_moteurs-lecteurs.md`.
+
 ## Feuille de route
 
 1. **Noyau et mesures de pluripotence** — fait.
@@ -111,7 +119,10 @@ son cerveau et son activité pas à pas. Journal : `journal/2026-11-14_monde-dec
    Avec une ressource, un déchet toxique et un monde en 2D, la survie seule sélectionne
    un comportement qui dépend du contexte (toujours bouger quand ça va mal, un pas sur
    deux quand ça va bien), mais aucune mesure de structure n'est enrichie ; elles le
-   sont dans le monde bien mélangé, où rien ne dépend du contexte.
+   sont dans le monde bien mélangé, où rien ne dépend du contexte. Avec des moteurs
+   lecteurs, la lecture immédiate redonne ce comportement ; avec un pas de retard, la
+   stratégie sensible au contexte perd son avantage net et les populations basculent
+   entre elle et un autre état. Les nœuds de contrôle restent enrichis en monde mélangé.
 4. **Mesures graduées** : décompositions partielles, contrôle à plusieurs nœuds.
 5. **Mutations qui changent la dimension** : duplication et suppression de nœuds.
 6. **Organismes à plusieurs cellules** partageant un même SBN.

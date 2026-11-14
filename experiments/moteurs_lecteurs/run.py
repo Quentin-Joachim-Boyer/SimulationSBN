@@ -40,7 +40,7 @@ SHOWN = ["effectif", "naissances", "bouger_0", "bouger_1", "dependance", "manger
 PANELS = [  # (mesure, titre, unité, indice du modèle nul uniforme ou None)
     ("effectif", "Effectif", "agents vivants", None),
     ("dependance", "Dépendance au contexte : P(bouger | 0) - P(bouger | 1)", "points de %", None),
-    ("bouger_1", "Part des pas avec déplacement quand le capteur valait 1", "%", None),
+    ("bouger_1", "P(bouger) quand le capteur valait 1", "%", None),
     ("controle_cerveau", "Cerveau seul : part à nœud de contrôle", "%", 0),
     ("psbn_cerveau", "Cerveau seul : part de PSBN", "%", 1),
     ("scission_sbn", "Part dont la face « capteur = 1 » est un SBN", "%", 2),
@@ -124,7 +124,8 @@ def figure(results, null, every, path, suptitle):
         ax.set_title(title)
     for ax in axes[1]:
         ax.set_xlabel("pas")
-    axes[0, 0].legend(loc="lower right", fontsize=8.5)
+    handles, labels = axes[1, 0].get_legend_handles_labels()
+    fig.legend(handles, labels, loc="outside lower center", ncol=len(labels))
     fig.suptitle(suptitle, x=0.01, ha="left", color=INK, fontsize=12)
     fig.savefig(path, dpi=160)
     plt.close(fig)

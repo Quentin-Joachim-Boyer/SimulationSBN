@@ -73,9 +73,8 @@ def main():
     fig, ax = plt.subplots(figsize=(9, 4.6), layout="constrained")
     for row in dep:
         ax.plot(t, row, color=color, linewidth=0.7, alpha=0.3)
-    ax.plot(
-        t, np.nanmean(dep, axis=0), color=color, linewidth=2.2, label="moyenne des 24 populations"
-    )
+    mean = np.nanmean(dep[:, 1:], axis=0)  # le relevé du pas 0 n'a pas de comportement
+    ax.plot(t[1:], mean, color=color, linewidth=2.2, label="moyenne des 24 populations")
     ax.axhline(0, color=INK, linewidth=0.8)
     ax.axvline(
         20_000, color=INK, linewidth=1, linestyle=(0, (4, 3)), label="fin du premier lancement"
