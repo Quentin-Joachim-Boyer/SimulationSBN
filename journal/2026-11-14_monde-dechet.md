@@ -117,11 +117,50 @@ résultat dégénéré est noté tel quel.
 
 ## Calibrage
 
-À remplir.
+`python experiments/monde_dechet/calibrage.py`, agents construits à la main, mutation
+coupée. Sept jeux de paramètres essayés ; seuls l'effectif, les naissances, les parts
+servies et empoisonnées et l'issue du mélange des trois types ont été regardés.
+
+- **Valeurs de départ** : en régime espace le marcheur élimine le réactif (6 mélanges
+  sur 6). La nourriture n'y est pas limitante (95 % des demandes servies) : c'est le
+  poison qui limite la population, et rester sur place revient à manger dans son propre
+  déchet. La sensibilité au contexte n'y paie pas.
+- **Déplacement à 2 d'énergie** (trois essais) : les trois types s'éteignent en régime
+  espace. Manger en se déplaçant donne alors un bilan nul, le capteur ne passe jamais à 1
+  et le réactif ne s'arrête plus. Écarté.
+- **Seuil de toxicité à 20, 30 ou 40** (déplacement à 1) : le réactif élimine les deux
+  autres en régime espace, l'immobile gagne en régime mélangé, les populations se
+  renouvellent. Plus le seuil est haut, moins le déchet compte (17 %, 12 %, 10 % des
+  ingestions empoisonnées pour le réactif).
+
+Je retiens le seuil à 20, le plus bas qui remplit les critères, donc celui où le déchet
+pèse le plus. C'est le seul paramètre changé.
+
+| Seuil 20, monoculture | Effectif | Naissances par pas | Demandes servies | Ingestions empoisonnées |
+|---|---|---|---|---|
+| Espace, immobile | 0 | | | |
+| Espace, marcheur | 145 | 3,3 | 88 % | 14 % |
+| Espace, réactif | 157 | 4,7 | 74 % | 17 % |
+| Mélangé, immobile | 293 | 8,0 | 68 % | 18 % |
+| Mélangé, marcheur | 214 | 3,4 | 93 % | 18 % |
+| Mélangé, réactif | 262 | 7,8 | 76 % | 18 % |
+
+Mélange des trois types (6 populations, 4 000 pas) : réactif 100 % en régime espace,
+immobile 100 % en régime mélangé. Génotypes uniformes sur 500 pas : effectif entre 149 et
+176 en régime espace, entre 286 et 311 en régime mélangé.
+
+À noter pour la lecture des résultats : les effectifs diffèrent d'un régime à l'autre
+(environ 150, 290 et 400 en neutre), donc la dérive aussi.
 
 ## Paramètres figés
 
-À remplir avant le lancement.
+Ceux du protocole, avec un seul changement : **empoisonnement certain à 20 unités de
+déchet par case** (au lieu de 10). Figés avant le premier lancement de
+`experiments/monde_dechet/run.py`.
+
+Ajout décidé avant le lancement : dans les populations finales, la part d'agents dont
+le poids capteur → déplacement est négatif, nul ou positif (de même pour l'ingestion),
+pour voir si le mécanisme supposé par l'hypothèse 2 est le bon.
 
 ## Résultat
 
