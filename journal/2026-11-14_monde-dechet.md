@@ -237,7 +237,7 @@ populations, était donc probablement du bruit.
   tout va bien. Ce motif (point fixe dans un contexte, cycle de période 2 dans l'autre)
   est porté par 54,5 % des agents en régime espace et majoritaire dans 14 populations
   sur 24, contre 0,8 % en régime neutre (p < 0,0001). 26 % d'autres agents ont le même
-  point fixe et un comportement sous capteur 1 qui dépend de l'état du nœud caché.
+  point fixe et un comportement sous capteur 1 qui dépend de l'état de départ du cerveau.
 - **C'est le déchet qui fait cette différence.** Agents construits à la main, mutation
   coupée, 8 populations : avec le poison, l'« alternant » élimine le réactif ; sans
   poison (seuil infini), le réactif élimine l'alternant. Rester, c'est manger dans son
