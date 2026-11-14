@@ -231,14 +231,14 @@ def main():
         print(f"   régime {regime}")
         for k in sorted(keys, key=lambda k: -mean[k])[:4]:
             major = sum(t.get(k, 0) > 0.5 for t in tallies)
-            print(
-                f"      {k[0]:14} {k[1]:14} {100 * mean[k]:5.1f} %   majoritaire dans {major}/{args.rep}"
-            )
+            share = f"{100 * mean[k]:5.1f} %"
+            print(f"      {k[0]:14} {k[1]:14} {share}   majoritaire dans {major}/{args.rep}")
     for regime in list(REGIMES)[:-1]:
         p = permutation_test(target[regime], target["neutre"], rng)
+        here, there = 100 * target[regime].mean(), 100 * target["neutre"].mean()
         print(
-            f"   motif « {TARGET[0]}, {TARGET[1]} », {regime} : {100 * target[regime].mean():.1f} % "
-            f"contre {100 * target['neutre'].mean():.1f} % en neutre, p {format_p(p, True)}"
+            f"   motif « {TARGET[0]}, {TARGET[1]} », {regime} : {here:.1f} % "
+            f"contre {there:.1f} % en neutre, p {format_p(p, True)}"
         )
 
     np.savez_compressed(
