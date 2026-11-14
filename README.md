@@ -30,6 +30,9 @@ Le paquet `simsbn` (dans `src/`), implémentation de référence en NumPy :
 | `agents` | architecture entrée / cerveau / moteur, comme SBN à topologie contrainte |
 | `simulability` | cible simulée par un cerveau sur ses nœuds visibles |
 | `milieu` | milieu partagé à deux ressources : énergie, mort, division, viabilité en solitaire |
+| `monde` | monde en grille (2D, ou 1 × 1 pour un milieu bien mélangé) : nourriture, déchet toxique, déplacement, capteur de bien-être |
+| `structure` | mesures de structure d'un agent à un capteur, loi uniforme exacte du cerveau seul |
+| `stats` | test par permutation, une population étant l'unité |
 | `tasks` | contextes, trajectoires et score d'un agent |
 | `viz` | style commun des figures |
 | `pluripotence` | nœuds de contrôle (sur les poids ou sur la dynamique), décomposition PSBN et PTBN, comptage exact des dynamiques décomposables |
@@ -79,6 +82,16 @@ Milieu partagé, sans cible ni fitness : les agents ingèrent deux ressources, m
 d'épuisement ou se divisent, en régime constant, à saisons ou neutre. Journal :
 `journal/2026-11-14_milieu-partage.md`.
 
+    python experiments/monde_dechet/calibrage.py  # agents construits à la main
+    python experiments/monde_dechet/run.py        # environ 4 minutes sur 2 cœurs
+    python experiments/monde_dechet/motifs.py     # analyse des populations finales
+    python experiments/monde_dechet/voir.py       # écrit out/monde_2d.html
+
+Une ressource et un déchet toxique produit par l'ingestion, dans un monde bien mélangé,
+dans un monde en 2D où les agents se déplacent, et en régime neutre. `voir.py` rejoue une
+des populations mesurées dans une page à ouvrir dans un navigateur : on y suit un agent,
+son cerveau et son activité pas à pas. Journal : `journal/2026-11-14_monde-dechet.md`.
+
 ## Feuille de route
 
 1. **Noyau et mesures de pluripotence** — fait.
@@ -95,6 +108,10 @@ d'épuisement ou se divisent, en régime constant, à saisons ou neutre. Journal
    dans cette table. Dans un milieu partagé où la survie seule sélectionne, les agents
    ingèrent tout en permanence et ignorent leur capteur : aucun comportement ne dépend
    du contexte, et le régime à saisons se fige. Résultat négatif, protocole à revoir.
+   Avec une ressource, un déchet toxique et un monde en 2D, la survie seule sélectionne
+   un comportement qui dépend du contexte (toujours bouger quand ça va mal, un pas sur
+   deux quand ça va bien), mais aucune mesure de structure n'est enrichie ; elles le
+   sont dans le monde bien mélangé, où rien ne dépend du contexte.
 4. **Mesures graduées** : décompositions partielles, contrôle à plusieurs nœuds.
 5. **Mutations qui changent la dimension** : duplication et suppression de nœuds.
 6. **Organismes à plusieurs cellules** partageant un même SBN.

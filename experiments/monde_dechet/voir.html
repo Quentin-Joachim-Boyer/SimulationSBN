@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Monde 2D des agents SBN</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600&family=Instrument+Serif&display=swap" rel="stylesheet">
+<style>
+:root {
+  /* Une plaque de culture vue au microscope, en fond clair : la plaque à gauche avec sa
+     règle graduée, une colonne d'instruments à droite. Les seules couleurs vives sont
+     celles de ce qui vit ou se dépose sur la plaque. */
+  --bg: #eceee9;
+  --surface: #f7f8f4;
+  --plate: #fdfdfb;
+  --ink: #141a1c;
+  --muted: #566064;
+  --line: #d2d7d0;
+  --food: #1a9565;
+  --waste: #7a49b4;
+  --well: #2a78d6;
+  --unwell: #e3601f;
+  --lineage-l: 44%;
+  --display: "Instrument Serif", "Iowan Old Style", Georgia, serif;
+  --body: "Instrument Sans", "Helvetica Neue", Arial, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1213; --surface: #151a1c; --plate: #0a0d0e; --ink: #e8edea; --muted: #98a4a5;
+    --line: #2a3235; --food: #39c98c; --waste: #b189ee; --well: #62a8f7; --unwell: #ff8c57;
+    --lineage-l: 66%;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1213; --surface: #151a1c; --plate: #0a0d0e; --ink: #e8edea; --muted: #98a4a5;
+  --line: #2a3235; --food: #39c98c; --waste: #b189ee; --well: #62a8f7; --unwell: #ff8c57;
+  --lineage-l: 66%;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--bg); color: var(--ink);
+  font: 400 15px/1.5 var(--body);
+  -webkit-font-smoothing: antialiased;
+}
+main { max-width: 1180px; margin: 0 auto; padding: 28px 20px 48px; display: flex; flex-direction: column; gap: 22px; }
+h1 { font: 400 clamp(34px, 5vw, 50px)/1.02 var(--display); letter-spacing: -0.01em; margin: 0; text-wrap: balance; }
+h2 { font: 600 12px/1.2 var(--body); letter-spacing: 0.09em; text-transform: uppercase; color: var(--muted); margin: 0; }
+h3 { font: 600 13px/1.3 var(--body); margin: 0; }
+p { margin: 0; }
+.top { display: flex; flex-direction: column; gap: 10px; }
+.deck { max-width: 66ch; color: var(--muted); font-size: 16px; }
+.deck strong { color: var(--ink); font-weight: 500; }
+.stage { display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, 380px); gap: 28px; align-items: start; }
+.plate-col { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; background: var(--surface); }
+.seg button {
+  font: 500 13px/1 var(--body); color: var(--muted); background: none; border: 0; padding: 9px 12px; cursor: pointer;
+  border-right: 1px solid var(--line);
+}
+.seg button:last-child { border-right: 0; }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+.seg small { font: 400 11px/1 var(--mono); opacity: 0.75; margin-left: 6px; }
+.grow { flex: 1 1 auto; }
+.label { font-size: 13px; color: var(--muted); }
+.plate { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px 10px 4px; }
+.plate canvas { display: block; width: 100%; aspect-ratio: 1; cursor: crosshair; touch-action: manipulation; }
+.transport { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; }
+.btn {
+  font: 500 13px/1 var(--body); color: var(--ink); background: var(--surface); border: 1px solid var(--line);
+  border-radius: 6px; padding: 9px 12px; cursor: pointer; min-width: 40px;
+}
+.btn.primary { background: var(--ink); color: var(--bg); border-color: var(--ink); min-width: 84px; }
+button:focus-visible, input:focus-visible, canvas:focus-visible { outline: 2px solid var(--well); outline-offset: 2px; }
+input[type="range"] { flex: 1 1 90px; min-width: 90px; accent-color: var(--ink); }
+.clock { font: 500 15px/1 var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.clock span { color: var(--muted); font-weight: 400; }
+.legend { list-style: none; margin: 4px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 7px 22px; font-size: 13px; color: var(--muted); }
+.legend li { display: flex; align-items: center; gap: 9px; }
+.legend li[hidden] { display: none; }
+.legend svg { flex: 0 0 22px; }
+.legend b { color: var(--ink); font-weight: 500; }
+.instruments { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+.panel { display: flex; flex-direction: column; gap: 10px; padding-top: 14px; border-top: 1px solid var(--line); }
+.panel:first-child { border-top: 0; padding-top: 0; }
+.reading { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 10px; align-items: baseline; }
+.reading .name { font-size: 13px; color: var(--muted); }
+.reading .value { font: 500 15px/1.2 var(--mono); font-variant-numeric: tabular-nums; }
+.reading canvas { grid-column: 1 / -1; width: 100%; height: 34px; display: block; }
+.who { font: 400 13px/1.4 var(--mono); color: var(--muted); }
+.who b { color: var(--ink); font-weight: 500; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font: 500 12px/1 var(--body); padding: 6px 9px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); white-space: nowrap; }
+.chip.on { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.chip.well { background: var(--well); border-color: var(--well); color: #fff; }
+.chip.unwell { background: var(--unwell); border-color: var(--unwell); color: #fff; }
+.chip.poison { background: var(--waste); border-color: var(--waste); color: #fff; }
+.strip { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 0 10px; align-items: stretch; }
+.strip ol { list-style: none; margin: 0; padding: 0; display: grid; grid-auto-rows: 15px; font-size: 11.5px; line-height: 15px; color: var(--muted); }
+.strip canvas { width: 100%; height: 90px; display: block; cursor: pointer; }
+table.brain { border-collapse: collapse; font: 400 13px/1 var(--mono); font-variant-numeric: tabular-nums; }
+table.brain th { font: 500 11.5px/1.2 var(--body); color: var(--muted); padding: 5px 8px; text-align: center; }
+table.brain th[scope="row"] { text-align: right; padding-left: 0; }
+table.brain td { padding: 3px; }
+table.brain td span { display: block; min-width: 42px; padding: 7px 0; text-align: center; border-radius: 4px; border: 1px solid var(--line); color: var(--muted); }
+table.brain td span.pos { background: var(--ink); border-color: var(--ink); color: var(--bg); }
+table.brain td span.neg { border-color: var(--ink); color: var(--ink); border-style: dashed; }
+.note { font-size: 13px; color: var(--muted); }
+.note b { color: var(--ink); font-weight: 500; }
+.flags { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font-size: 13px; color: var(--muted); }
+.flags li { display: flex; justify-content: space-between; gap: 12px; border-bottom: 1px dotted var(--line); padding-bottom: 3px; }
+.flags b { font: 500 12.5px/1.4 var(--mono); color: var(--ink); }
+.rules { border-top: 1px solid var(--line); padding-top: 16px; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px 28px; font-size: 13.5px; color: var(--muted); }
+.rules b { color: var(--ink); font-weight: 500; }
+@media (max-width: 880px) {
+  .stage { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 480px) {
+  main { padding: 20px 16px 36px; }
+  .seg small { display: none; }
+}
+</style>
+</head>
+<body>
+<main>
+  <header class="top">
+    <h1>Monde 2D des agents SBN</h1>
+    <p class="deck">Une population <strong>réellement mesurée</strong>, rejouée pas à pas : la population <span id="rep">0</span> du régime espace. Chaque point est un cerveau SBN de trois nœuds. Il ingère, se déplace, laisse un déchet toxique là où il mange, et ne perçoit qu'une chose : son énergie vient-elle de monter ?</p>
+  </header>
+
+  <section class="stage">
+    <div class="plate-col">
+      <div class="bar">
+        <div class="seg" id="scenes" role="group" aria-label="Scène"></div>
+        <span class="grow"></span>
+        <span class="label" id="mode-label">Couleur des agents</span>
+        <div class="seg" id="modes" role="group" aria-labelledby="mode-label">
+          <button type="button" data-mode="etat" aria-pressed="true">État</button>
+          <button type="button" data-mode="lignee" aria-pressed="false">Lignée</button>
+        </div>
+      </div>
+      <div class="plate"><canvas id="plate" tabindex="0" aria-label="Grille du monde : nourriture, déchet et agents au pas affiché. Cliquer sur un agent pour le suivre."></canvas></div>
+      <div class="transport">
+        <button class="btn primary" id="play" type="button">Lire</button>
+        <button class="btn" id="back" type="button" aria-label="Reculer d'un pas">−1</button>
+        <button class="btn" id="fwd" type="button" aria-label="Avancer d'un pas">+1</button>
+        <input id="seek" type="range" min="0" max="299" step="1" value="0" aria-label="Position dans la scène">
+        <span class="clock" id="clock">pas 0</span>
+        <div class="seg" id="speeds" role="group" aria-label="Vitesse de lecture">
+          <button type="button" data-speed="2" aria-pressed="false">2</button>
+          <button type="button" data-speed="8" aria-pressed="true">8</button>
+          <button type="button" data-speed="30" aria-pressed="false">30 <small>pas/s</small></button>
+        </div>
+      </div>
+      <ul class="legend" id="legend">
+        <li><svg width="22" height="18" viewBox="0 0 22 18" aria-hidden="true"><rect x="2" y="2" width="18" height="14" fill="none" stroke="var(--line)"/><rect x="4" y="11" width="11" height="3" fill="var(--food)"/></svg><span><b>Nourriture</b> de la case : barre, de 0 à 5 unités</span></li>
+        <li><svg width="22" height="18" viewBox="0 0 22 18" aria-hidden="true"><rect x="2" y="2" width="18" height="14" fill="var(--waste)" opacity="0.6"/></svg><span><b>Déchet</b> : teinte, pleine à 12 unités ou plus</span></li>
+        <li data-mode="etat"><svg width="22" height="18" viewBox="0 0 22 18" aria-hidden="true"><circle cx="11" cy="9" r="5" fill="var(--well)"/></svg><span><b>Va bien</b> : son énergie vient de monter</span></li>
+        <li data-mode="etat"><svg width="22" height="18" viewBox="0 0 22 18" aria-hidden="true"><circle cx="11" cy="9" r="5" fill="var(--unwell)"/></svg><span><b>Va mal</b> : pas nourri, ou empoisonné</span></li>
+        <li data-mode="lignee" hidden><svg width="22" height="18" viewBox="0 0 22 18" aria-hidden="true"><circle cx="7" cy="9" r="4" fill="hsl(20 62% 50%)"/><circle cx="15" cy="9" r="4" fill="hsl(200 62% 50%)"/></svg><span><b>Lignée</b> : une couleur par ancêtre du pas 0</span></li>
+        <li><svg width="22" height="18" viewBox="0 0 22 18" aria-hidden="true"><circle cx="11" cy="9" r="4.2" fill="none" stroke="var(--muted)" stroke-width="1.8"/></svg><span><b>Cercle vide</b> : n'a pas tenté d'ingérer</span></li>
+        <li><svg width="22" height="18" viewBox="0 0 22 18" aria-hidden="true"><circle cx="11" cy="9" r="3.6" fill="var(--unwell)"/><circle cx="11" cy="9" r="6.6" fill="none" stroke="var(--waste)" stroke-width="2"/></svg><span><b>Anneau violet</b> : empoisonné à ce pas</span></li>
+        <li><svg width="22" height="18" viewBox="0 0 22 18" aria-hidden="true"><path d="M7 5l8 8M15 5l-8 8" stroke="var(--muted)" stroke-width="1.6"/></svg><span><b>Croix</b> : mort à ce pas</span></li>
+        <li><svg width="22" height="18" viewBox="0 0 22 18" aria-hidden="true"><circle cx="11" cy="9" r="3.6" fill="var(--well)"/><circle cx="11" cy="9" r="7" fill="none" stroke="var(--ink)" stroke-width="1"/></svg><span><b>Anneau fin</b> : né à ce pas, sur la case du parent</span></li>
+      </ul>
+    </div>
+
+    <aside class="instruments">
+      <section class="panel" aria-labelledby="h-read">
+        <h2 id="h-read">Au pas affiché</h2>
+        <div class="reading"><span class="name">Agents vivants</span><span class="value" id="v-pop">0</span><canvas id="s-pop"></canvas></div>
+        <div class="reading"><span class="name">Agents qui vont bien</span><span class="value" id="v-well">0 %</span><canvas id="s-well"></canvas></div>
+        <div class="reading"><span class="name">Agents qui se sont déplacés</span><span class="value" id="v-move">0 %</span><canvas id="s-move"></canvas></div>
+        <div class="reading"><span class="name">Déchet par case</span><span class="value" id="v-waste">0</span><canvas id="s-waste"></canvas></div>
+      </section>
+
+      <section class="panel" aria-labelledby="h-agent">
+        <h2 id="h-agent">Agent suivi</h2>
+        <p class="who" id="who">Cliquez sur un agent pour le suivre.</p>
+        <div class="chips" id="chips"></div>
+        <h3>Son activité pendant la scène</h3>
+        <div class="strip">
+          <ol aria-hidden="true"><li>Va bien</li><li>Ingère</li><li>Se déplace</li><li>Nœud caché</li><li>Nourri</li><li>Empoisonné</li></ol>
+          <canvas id="strip" aria-label="Activité de l'agent suivi à chaque pas de la scène. Cliquer pour aller à un pas."></canvas>
+        </div>
+        <h3>Son cerveau : poids de la ligne vers la colonne</h3>
+        <table class="brain" id="brain"></table>
+        <p class="note" id="motif"></p>
+        <ul class="flags" id="flags"></ul>
+      </section>
+    </aside>
+  </section>
+
+  <footer class="rules">
+    <p><b>Le monde.</b> Grille torique de <span id="dims">32 × 32</span> cases. La nourriture arrive au hasard, partout au même rythme, jusqu'à 5 unités par case. Le déchet disparaît de 5 % par pas.</p>
+    <p><b>Un pas.</b> L'agent se déplace d'une case au hasard si son nœud « bouger » est allumé, puis ingère si son nœud « ingérer » l'est : une unité de nourriture s'il en reste, et un risque de poison qui croît avec le déchet de la case.</p>
+    <p><b>L'énergie.</b> +4 par unité ingérée ; −1 par pas, par ingestion tentée et par déplacement ; −4 par empoisonnement. Mort à 0, division à 20. Aucune cible, aucune note : seule la survie trie.</p>
+    <p><b>Les scènes.</b> Trois moments de la même population : génotypes tirés au hasard au départ, puis 2 000 et 19 700 pas d'évolution plus tard.</p>
+  </footer>
+</main>
+
+<script>
+const DATA = /*DONNEES*/null;
+
+(function () {
+  "use strict";
+  const BIT = { SENSOR: 1, EAT: 2, MOVE: 4, HIDDEN: 8, BORN: 16, FED: 32, POISONED: 64 };
+  const ROWS = [["SENSOR", "well"], ["EAT", "ink"], ["MOVE", "ink"], ["HIDDEN", "muted"], ["FED", "food"], ["POISONED", "waste"]];
+  const KIND_LABELS = {
+    controle_cerveau: "Nœud de contrôle (cerveau seul)",
+    psbn_cerveau: "PSBN (cerveau seul)",
+    scission_sbn: "Face « capteur = 1 » SBN",
+    controle_interne: "Contrôle interne",
+  };
+  const $ = (id) => document.getElementById(id);
+  const W = DATA.width, H = DATA.height, CELLS = W * H;
+  const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const fr = new Intl.NumberFormat("fr-FR");
+  const fr2 = new Intl.NumberFormat("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  function bytes(text) {
+    const bin = atob(text), out = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+    return out;
+  }
+  function words(text) {
+    const b = bytes(text);
+    return new Uint16Array(b.buffer, 0, b.length >> 1);
+  }
+
+  // Une scène décodée : tableaux à plat, un rang par (pas, agent présent).
+  const cache = [];
+  function scene(i) {
+    if (cache[i]) return cache[i];
+    const raw = DATA.scenes[i], F = raw.frames, A = raw.ident.length;
+    const sc = {
+      raw, F, A, grid: bytes(raw.grid), index: words(raw.index), cell: words(raw.cell),
+      state: bytes(raw.state), energy: bytes(raw.energy),
+      offset: new Int32Array(F + 1), slot: new Int32Array(F * A).fill(-1),
+      first: new Int32Array(A).fill(-1), last: new Int32Array(A).fill(-1),
+      pop: new Float32Array(F), well: new Float32Array(F), move: new Float32Array(F), waste: new Float32Array(F),
+    };
+    for (let f = 0; f < F; f++) sc.offset[f + 1] = sc.offset[f] + raw.counts[f];
+    for (let f = 0; f < F; f++) {
+      let well = 0, moved = 0, waste = 0;
+      for (let k = sc.offset[f]; k < sc.offset[f + 1]; k++) {
+        const a = sc.index[k];
+        sc.slot[f * A + a] = k;
+        if (sc.first[a] < 0) sc.first[a] = f;
+        sc.last[a] = f;
+        if (sc.state[k] & BIT.SENSOR) well++;
+        if (sc.state[k] & BIT.MOVE) moved++;
+      }
+      for (let c = 0; c < CELLS; c++) waste += sc.grid[f * CELLS + c] >> 3;
+      const n = Math.max(1, raw.counts[f]);
+      sc.pop[f] = raw.counts[f]; sc.well[f] = well / n; sc.move[f] = moved / n; sc.waste[f] = waste / CELLS;
+    }
+    cache[i] = sc;
+    return sc;
+  }
+  function longestLived(sc) {
+    let best = -1, span = -1;
+    for (let a = 0; a < sc.A; a++) {
+      const s = sc.last[a] - sc.first[a];
+      if (s > span) { span = s; best = a; }
+    }
+    return best;
+  }
+
+  const S = { scene: DATA.scenes.length - 1, t: 0, playing: !reduced, speed: 8, mode: "etat", sel: -1 };
+  const cur = () => scene(S.scene);
+  const frame = () => Math.min(Math.floor(S.t), cur().F - 1);
+
+  // Couleurs lues dans les jetons du thème, relues quand le thème change.
+  let C = {};
+  function readColors() {
+    const css = getComputedStyle(document.documentElement);
+    for (const name of ["bg", "surface", "plate", "ink", "muted", "line", "food", "waste", "well", "unwell"])
+      C[name] = css.getPropertyValue("--" + name).trim();
+    C.lineageL = css.getPropertyValue("--lineage-l").trim() || "46%";
+    C.mono = css.getPropertyValue("--mono").trim();
+  }
+  const lineageColor = (l) => `hsl(${(l * 137.508) % 360} 62% ${C.lineageL})`;
+
+  // ---------- La plaque ----------
+  const plate = $("plate"), ctx = plate.getContext("2d");
+  let size = 0, dpr = 1, margin = 22, cs = 1;
+  let hits = [];  // agents dessinés : [x, y, rang dans la scène]
+  function fit() {
+    const box = plate.getBoundingClientRect();
+    dpr = window.devicePixelRatio || 1;
+    size = box.width;
+    plate.width = Math.round(size * dpr);
+    plate.height = Math.round(size * dpr);
+    margin = size < 420 ? 16 : 22;
+    cs = (size - margin - 1) / W;
+  }
+  const edge = (k) => Math.round(margin + k * cs);
+  function jitter(a) {
+    const angle = a * 2.399963, radius = cs * 0.2 * Math.sqrt(((a * 7919) % 97) / 97);
+    return [Math.cos(angle) * radius, Math.sin(angle) * radius];
+  }
+  function center(c, a) {
+    const j = jitter(a);
+    return [margin + ((c % W) + 0.5) * cs + j[0], margin + (Math.floor(c / W) + 0.5) * cs + j[1]];
+  }
+  const adjacent = (c0, c1) => Math.abs((c0 % W) - (c1 % W)) + Math.abs(Math.floor(c0 / W) - Math.floor(c1 / W)) <= 1;
+
+  function drawPlate() {
+    const sc = cur(), f = frame();
+    const u = reduced || f >= sc.F - 1 ? 0 : S.t - f;
+    const ease = u * u * (3 - 2 * u);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, size, size);
+
+    // Règle graduée, comme sur une platine : numéro de case tous les 8.
+    ctx.font = `10px ${C.mono}`;
+    ctx.fillStyle = C.muted; ctx.strokeStyle = C.muted; ctx.lineWidth = 1;
+    ctx.textAlign = "center"; ctx.textBaseline = "alphabetic";
+    for (let k = 0; k <= W; k += 4) {
+      const x = edge(k) + 0.5, long = k % 8 === 0;
+      ctx.beginPath(); ctx.moveTo(x, margin - (long ? 6 : 3)); ctx.lineTo(x, margin - 1); ctx.stroke();
+      if (long && k < W) ctx.fillText(String(k), x + cs / 2, margin - 9);
+    }
+    ctx.textAlign = "right"; ctx.textBaseline = "middle";
+    for (let k = 0; k <= H; k += 4) {
+      const y = edge(k) + 0.5, long = k % 8 === 0;
+      ctx.beginPath(); ctx.moveTo(margin - (long ? 6 : 3), y); ctx.lineTo(margin - 1, y); ctx.stroke();
+      if (long && k < H) ctx.fillText(String(k), margin - 8, y + cs / 2);
+    }
+
+    ctx.fillStyle = C.plate;
+    ctx.fillRect(margin, margin, edge(W) - margin, edge(H) - margin);
+
+    // Cases : teinte du déchet, puis barre de nourriture en bas de case.
+    const g0 = f * CELLS, barH = Math.max(2, Math.round(cs * 0.17));
+    ctx.fillStyle = C.waste;
+    for (let c = 0; c < CELLS; c++) {
+      const waste = sc.grid[g0 + c] >> 3;
+      if (!waste) continue;
+      const x = edge(c % W), y = edge(Math.floor(c / W));
+      ctx.globalAlpha = Math.min(0.85, 0.85 * waste / (0.6 * DATA.tox));  // saturée à 12 unités
+      ctx.fillRect(x, y, edge((c % W) + 1) - x, edge(Math.floor(c / W) + 1) - y);
+    }
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = C.food;
+    for (let c = 0; c < CELLS; c++) {
+      const food = sc.grid[g0 + c] & 7;
+      if (!food) continue;
+      const x = edge(c % W), y1 = edge(Math.floor(c / W) + 1);
+      ctx.fillRect(x + 2, y1 - barH - 1, Math.max(1, (cs - 4) * food / DATA.food_cap), barH);
+    }
+    ctx.strokeStyle = C.line; ctx.lineWidth = 1;
+    ctx.strokeRect(margin + 0.5, margin + 0.5, edge(W) - margin - 1, edge(H) - margin - 1);
+
+    const r = Math.max(2.4, cs * 0.25);
+    // Morts pendant ce pas : une croix là où l'agent se trouvait.
+    if (f > 0) {
+      ctx.strokeStyle = C.muted; ctx.lineWidth = 1.4; ctx.globalAlpha = 0.85 * (1 - u);
+      for (let k = sc.offset[f - 1]; k < sc.offset[f]; k++) {
+        const a = sc.index[k];
+        if (sc.slot[f * sc.A + a] >= 0) continue;
+        const p = center(sc.cell[k], a);
+        ctx.beginPath();
+        ctx.moveTo(p[0] - r, p[1] - r); ctx.lineTo(p[0] + r, p[1] + r);
+        ctx.moveTo(p[0] + r, p[1] - r); ctx.lineTo(p[0] - r, p[1] + r);
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    hits = [];
+    for (let k = sc.offset[f]; k < sc.offset[f + 1]; k++) {
+      const a = sc.index[k], bits = sc.state[k], c0 = sc.cell[k];
+      const p0 = center(c0, a);
+      let x = p0[0], y = p0[1];
+      const next = f + 1 < sc.F ? sc.slot[(f + 1) * sc.A + a] : -1;
+      if (u > 0 && next >= 0 && sc.cell[next] !== c0) {
+        const p1 = center(sc.cell[next], a);
+        if (adjacent(c0, sc.cell[next])) { x += (p1[0] - x) * ease; y += (p1[1] - y) * ease; }
+        else if (u > 0.5) { x = p1[0]; y = p1[1]; }
+      }
+      const color = S.mode === "etat" ? (bits & BIT.SENSOR ? C.well : C.unwell) : lineageColor(sc.raw.lineage[a]);
+      // Trace du déplacement qui vient d'avoir lieu.
+      if (bits & BIT.MOVE && f > 0) {
+        const prev = sc.slot[(f - 1) * sc.A + a];
+        if (prev >= 0 && sc.cell[prev] !== c0 && adjacent(sc.cell[prev], c0)) {
+          const q = center(sc.cell[prev], a);
+          ctx.strokeStyle = color; ctx.lineWidth = 1.2; ctx.globalAlpha = 0.45 * (1 - u);
+          ctx.beginPath(); ctx.moveTo(q[0], q[1]); ctx.lineTo(p0[0], p0[1]); ctx.stroke();
+          ctx.globalAlpha = 1;
+        }
+      }
+      ctx.beginPath(); ctx.arc(x, y, r, 0, 6.2832);
+      if (bits & BIT.EAT || bits & BIT.BORN) { ctx.fillStyle = color; ctx.fill(); }
+      else { ctx.strokeStyle = color; ctx.lineWidth = 1.7; ctx.stroke(); }
+      if (bits & BIT.POISONED) {
+        ctx.strokeStyle = C.waste; ctx.lineWidth = 2; ctx.globalAlpha = 1 - 0.6 * u;
+        ctx.beginPath(); ctx.arc(x, y, r + 2.6, 0, 6.2832); ctx.stroke(); ctx.globalAlpha = 1;
+      }
+      if (bits & BIT.BORN) {
+        ctx.strokeStyle = C.ink; ctx.lineWidth = 1; ctx.globalAlpha = 1 - 0.7 * u;
+        ctx.beginPath(); ctx.arc(x, y, r + 3.4, 0, 6.2832); ctx.stroke(); ctx.globalAlpha = 1;
+      }
+      if (a === S.sel) {
+        ctx.strokeStyle = C.ink; ctx.lineWidth = 1.6;
+        ctx.beginPath(); ctx.arc(x, y, r + 6, 0, 6.2832); ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(x - r - 11, y); ctx.lineTo(x - r - 6, y); ctx.moveTo(x + r + 6, y); ctx.lineTo(x + r + 11, y);
+        ctx.moveTo(x, y - r - 11); ctx.lineTo(x, y - r - 6); ctx.moveTo(x, y + r + 6); ctx.lineTo(x, y + r + 11);
+        ctx.stroke();
+      }
+      hits.push([x, y, a]);
+    }
+  }
+
+  // ---------- Courbes de la scène ----------
+  function prepCanvas(canvas) {
+    const box = canvas.getBoundingClientRect(), ratio = window.devicePixelRatio || 1;
+    canvas.width = Math.round(box.width * ratio); canvas.height = Math.round(box.height * ratio);
+    const c = canvas.getContext("2d");
+    c.setTransform(ratio, 0, 0, ratio, 0, 0);
+    c.clearRect(0, 0, box.width, box.height);
+    return [c, box.width, box.height];
+  }
+  function spark(id, series, f, color) {
+    const [c, w, h] = prepCanvas($(id));
+    let lo = Infinity, hi = -Infinity;
+    for (const v of series) { if (v < lo) lo = v; if (v > hi) hi = v; }
+    if (hi - lo < 1e-9) { hi = lo + 1; }
+    const X = (i) => 1 + (w - 2) * i / (series.length - 1), Y = (v) => h - 3 - (h - 7) * (v - lo) / (hi - lo);
+    c.beginPath(); c.moveTo(X(0), Y(series[0]));
+    for (let i = 1; i < series.length; i++) c.lineTo(X(i), Y(series[i]));
+    c.strokeStyle = color; c.lineWidth = 1.4; c.stroke();
+    c.lineTo(X(series.length - 1), h); c.lineTo(X(0), h); c.closePath();
+    c.globalAlpha = 0.12; c.fillStyle = color; c.fill(); c.globalAlpha = 1;
+    c.strokeStyle = C.line; c.beginPath(); c.moveTo(0, h - 0.5); c.lineTo(w, h - 0.5); c.stroke();
+    c.fillStyle = C.ink; c.beginPath(); c.arc(X(f), Y(series[f]), 3, 0, 6.2832); c.fill();
+  }
+
+  // ---------- Agent suivi ----------
+  function drawStrip() {
+    const sc = cur(), f = frame(), a = S.sel;
+    const [c, w, h] = prepCanvas($("strip"));
+    const rowH = h / ROWS.length, colW = w / sc.F;
+    if (a >= 0) {
+      for (let i = sc.first[a]; i <= sc.last[a]; i++) {
+        const k = sc.slot[i * sc.A + a];
+        if (k < 0) continue;
+        const bits = sc.state[k], x = i * colW;
+        for (let row = 0; row < ROWS.length; row++) {
+          const on = bits & BIT[ROWS[row][0]];
+          c.fillStyle = on ? C[ROWS[row][1]] : C.line;
+          c.globalAlpha = on ? 1 : 0.55;
+          c.fillRect(x, row * rowH + (on ? 2 : rowH / 2 - 0.5), Math.max(1, colW + 0.3), on ? rowH - 4 : 1);
+        }
+      }
+      c.globalAlpha = 1;
+    }
+    c.strokeStyle = C.line; c.lineWidth = 1;
+    c.strokeRect(0.5, 0.5, w - 1, h - 1);  // toute la durée de la scène
+    c.strokeStyle = C.ink;
+    const x = Math.round((f + 0.5) * colW) + 0.5;
+    c.beginPath(); c.moveTo(x, 0); c.lineTo(x, h); c.stroke();
+  }
+  function chip(text, cls) { return `<span class="chip ${cls || ""}">${text}</span>`; }
+  function sign(v) { return v > 0 ? "+" + v : v < 0 ? "−" + (-v) : "0"; }
+  function drawAgent() {
+    const sc = cur(), f = frame(), a = S.sel, raw = sc.raw;
+    if (a < 0) {
+      $("who").textContent = "Cliquez sur un agent pour le suivre.";
+      $("chips").innerHTML = ""; $("brain").innerHTML = ""; $("motif").textContent = ""; $("flags").innerHTML = "";
+      drawStrip();
+      return;
+    }
+    const k = sc.slot[f * sc.A + a], step = (i) => fr.format(raw.start + i);
+    let life = `vu du pas ${step(sc.first[a])} au pas ${step(sc.last[a])}`;
+    if (sc.last[a] < sc.F - 1) life += " (mort ensuite)";
+    $("who").innerHTML = `<b>Agent n° ${fr.format(raw.ident[a])}</b> · lignée ${raw.lineage[a]} · ${life}`;
+    if (k < 0) {
+      $("chips").innerHTML = chip(f < sc.first[a] ? "Pas encore né" : "Mort");
+    } else {
+      const bits = sc.state[k];
+      $("chips").innerHTML = [
+        chip(`Énergie ${sc.energy[k]}`),
+        bits & BIT.SENSOR ? chip("Va bien", "well") : chip("Va mal", "unwell"),
+        bits & BIT.BORN ? chip("Vient de naître", "on") : "",
+        chip(bits & BIT.EAT ? "A tenté d'ingérer" : "N'a pas ingéré", bits & BIT.EAT ? "on" : ""),
+        chip(bits & BIT.MOVE ? "S'est déplacé" : "Est resté", bits & BIT.MOVE ? "on" : ""),
+        bits & BIT.FED ? chip("Nourri", "on") : "",
+        bits & BIT.POISONED ? chip("Empoisonné", "poison") : "",
+      ].join("");
+    }
+    const g = raw.genotype[a], weights = raw.weights[g], n = DATA.brain;
+    let html = "<thead><tr><td></td>";
+    for (let j = 1; j <= n; j++) html += `<th scope="col">${DATA.nodes[j]}</th>`;
+    html += "</tr></thead><tbody>";
+    for (let i = 0; i <= n; i++) {
+      html += `<tr><th scope="row">${DATA.nodes[i]}</th>`;
+      for (let j = 0; j < n; j++) {
+        const v = weights[i * n + j];
+        html += `<td><span class="${v > 0 ? "pos" : v < 0 ? "neg" : ""}">${sign(v)}</span></td>`;
+      }
+      html += "</tr>";
+    }
+    $("brain").innerHTML = html + "</tbody>";
+    const m = raw.motifs[g], word = (s) => (s === "variable" ? "selon l'état de départ" : s);
+    $("motif").innerHTML = `Nœud « bouger », ingestion allumée : <b>${word(m[0])}</b> quand le capteur vaut 0, <b>${word(m[1])}</b> quand il vaut 1.`;
+    $("flags").innerHTML = DATA.kinds.map((kind, i) => `<li><span>${KIND_LABELS[kind] || kind}</span><b>${raw.flags[g][i] ? "oui" : "non"}</b></li>`).join("");
+    drawStrip();
+  }
+
+  // ---------- Mise à jour ----------
+  let shown = -1;
+  function drawSide() {
+    const sc = cur(), f = frame();
+    $("v-pop").textContent = fr.format(sc.pop[f]);
+    $("v-well").textContent = Math.round(100 * sc.well[f]) + " %";
+    $("v-move").textContent = Math.round(100 * sc.move[f]) + " %";
+    $("v-waste").textContent = fr2.format(sc.waste[f]);
+    spark("s-pop", sc.pop, f, C.ink);
+    spark("s-well", sc.well, f, C.well);
+    spark("s-move", sc.move, f, C.muted);
+    spark("s-waste", sc.waste, f, C.waste);
+    $("clock").innerHTML = `pas ${fr.format(sc.raw.start + f)} <span>/ ${fr.format(sc.raw.start + sc.F - 1)}</span>`;
+    $("seek").value = f;
+    drawAgent();
+    shown = f;
+  }
+  function render(force) {
+    drawPlate();
+    if (force || frame() !== shown) drawSide();
+  }
+  function setPlaying(on) {
+    S.playing = on;
+    $("play").textContent = on ? "Pause" : "Lire";
+    $("play").setAttribute("aria-pressed", String(on));
+  }
+  function seek(t) { S.t = Math.max(0, Math.min(cur().F - 1, t)); render(true); }
+  function setScene(i, keep) {
+    S.scene = i;
+    const sc = cur();
+    if (!keep) { S.t = 0; S.sel = longestLived(sc); }
+    $("seek").max = sc.F - 1;
+    for (const b of $("scenes").children) b.setAttribute("aria-pressed", String(Number(b.dataset.scene) === i));
+    render(true);
+  }
+  function setMode(mode) {
+    S.mode = mode;
+    for (const b of $("modes").children) b.setAttribute("aria-pressed", String(b.dataset.mode === mode));
+    for (const li of $("legend").querySelectorAll("[data-mode]")) li.hidden = li.dataset.mode !== mode;
+    render(true);
+  }
+  function setSpeed(v) {
+    S.speed = v;
+    for (const b of $("speeds").children) b.setAttribute("aria-pressed", String(Number(b.dataset.speed) === v));
+  }
+
+  let before = 0;
+  function tick(now) {
+    const dt = Math.min(0.1, (now - before) / 1000);
+    before = now;
+    if (S.playing) {
+      S.t += dt * S.speed;
+      if (S.t >= cur().F - 1) { S.t = cur().F - 1; setPlaying(false); }
+      render(false);
+    }
+    requestAnimationFrame(tick);
+  }
+
+  function start(saved) {
+    $("rep").textContent = DATA.replicate;
+    $("dims").textContent = `${H} × ${W}`;
+    $("scenes").innerHTML = DATA.scenes.map((s, i) =>
+      `<button type="button" data-scene="${i}" aria-pressed="false">${s.name}<small>${fr.format(s.start)}–${fr.format(s.start + s.frames - 1)}</small></button>`).join("");
+    readColors();
+    fit();
+    if (saved && Number.isInteger(saved.scene) && DATA.scenes[saved.scene]) {
+      S.scene = saved.scene; S.mode = saved.mode === "lignee" ? "lignee" : "etat"; S.speed = saved.speed || 8;
+      S.t = saved.t || 0; S.playing = false;
+      S.sel = cur().raw.ident.indexOf(saved.ident);
+    }
+    setSpeed(S.speed);
+    setMode(S.mode);
+    setScene(S.scene, Boolean(saved && saved.scene === S.scene && saved.t !== undefined));
+    if (S.sel < 0) S.sel = longestLived(cur());
+    setPlaying(S.playing);
+    render(true);
+
+    $("scenes").addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) setScene(Number(b.dataset.scene)); });
+    $("modes").addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) setMode(b.dataset.mode); });
+    $("speeds").addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) setSpeed(Number(b.dataset.speed)); });
+    $("play").addEventListener("click", () => {
+      if (!S.playing && S.t >= cur().F - 1) S.t = 0;
+      setPlaying(!S.playing);
+      render(true);
+    });
+    $("back").addEventListener("click", () => { setPlaying(false); seek(frame() - 1); });
+    $("fwd").addEventListener("click", () => { setPlaying(false); seek(frame() + 1); });
+    $("seek").addEventListener("input", (e) => { setPlaying(false); seek(Number(e.target.value)); });
+    plate.addEventListener("click", (e) => {
+      const box = plate.getBoundingClientRect(), x = e.clientX - box.left, y = e.clientY - box.top;
+      let best = -1, dist = 18 * 18;
+      for (const h of hits) {
+        const d = (h[0] - x) * (h[0] - x) + (h[1] - y) * (h[1] - y);
+        if (d < dist) { dist = d; best = h[2]; }
+      }
+      if (best >= 0) { S.sel = best; render(true); }
+    });
+    plate.addEventListener("keydown", (e) => {
+      if (e.key === " ") { e.preventDefault(); $("play").click(); }
+      if (e.key === "ArrowRight") { e.preventDefault(); $("fwd").click(); }
+      if (e.key === "ArrowLeft") { e.preventDefault(); $("back").click(); }
+    });
+    $("strip").addEventListener("click", (e) => {
+      const box = e.target.getBoundingClientRect();
+      setPlaying(false);
+      seek(Math.floor((e.clientX - box.left) / box.width * cur().F));
+    });
+    new ResizeObserver(() => { fit(); render(true); }).observe(plate);
+    const retheme = () => { readColors(); render(true); };
+    new MutationObserver(retheme).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+    window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", retheme);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => render(true));
+    requestAnimationFrame((now) => { before = now; requestAnimationFrame(tick); });
+  }
+
+  const hot = window.claude && window.claude.hot;
+  if (hot && hot.snapshot) {
+    hot.snapshot(() => ({ scene: S.scene, t: frame(), mode: S.mode, speed: S.speed, ident: S.sel >= 0 ? cur().raw.ident[S.sel] : -1 }));
+  }
+  if (hot && hot.ready) hot.ready(start); else start(hot && hot.data && hot.data.scene !== undefined ? hot.data : null);
+})();
+</script>
+</body>
+</html>

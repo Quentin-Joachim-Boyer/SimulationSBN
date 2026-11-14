@@ -247,6 +247,14 @@ C'est une pluripotence fonctionnelle au sens du projet : deux dynamiques de natu
 différente selon le contexte, obtenues sans cible. Elle est invisible pour les quatre
 mesures de structure.
 
+### Visualisation
+
+`python experiments/monde_dechet/voir.py` resimule la population 0 du régime espace (le
+script vérifie qu'elle finit identique à celle mesurée) et écrit `out/monde_2d.html` :
+trois scènes de 300 pas (départ, pas 2 000, fin), la grille avec nourriture, déchet et
+agents, et pour l'agent suivi ses poids, son activité pas à pas et ses mesures de
+structure. La page rejoue un enregistrement ; elle ne simule rien elle-même.
+
 ### Limites
 
 - Une graine, un seul jeu de paramètres, calibré pour que la sensibilité au contexte
