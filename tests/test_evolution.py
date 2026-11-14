@@ -74,7 +74,7 @@ def test_selection_favours_the_fitter_genotype():
     start = np.zeros((100, 2, 2), dtype=np.int64)
     start[:10, 0, 0] = 1  # dix porteurs d'une boucle sur le nœud 0
 
-    def fitness(population):
+    def fitness(population, generation):
         return 1.0 + 4.0 * (population[:, 0, 0] == 1)
 
     *_, (_, final, _) = wright_fisher(start, 30, rng, mutation_rate=0.0, fitness=fitness)

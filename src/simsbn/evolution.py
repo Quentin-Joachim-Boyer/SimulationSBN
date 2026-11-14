@@ -30,14 +30,14 @@ def wright_fisher(
     generations: int,
     rng: np.random.Generator,
     mutation_rate: float = 0.1,
-    fitness: Callable[[np.ndarray], np.ndarray] | None = None,
+    fitness: Callable[[np.ndarray, int], np.ndarray] | None = None,
     bound: int | None = None,
 ) -> Iterator[tuple[int, np.ndarray, np.ndarray | None]]:
     """Fait évoluer une population ``(N, d, d)`` à effectif constant.
 
     À chaque génération, chaque individu choisit son parent dans la génération
     précédente, uniformément (évolution neutre, ``fitness=None``) ou avec une
-    probabilité proportionnelle à ``fitness(population)``, puis subit une mutation
+    probabilité proportionnelle à ``fitness(population, génération)``, puis subit une mutation
     avec la probabilité ``mutation_rate``.
 
     Produit ``(génération, population, parents)``, où ``parents[k]`` est l'indice du
@@ -50,7 +50,7 @@ def wright_fisher(
     for generation in range(1, generations + 1):
         p = None
         if fitness is not None:
-            w = np.asarray(fitness(population), dtype=float)
+            w = np.asarray(fitness(population, generation), dtype=float)
             p = w / w.sum()
         parents = rng.choice(n, size=n, p=p)
         population = population[parents]

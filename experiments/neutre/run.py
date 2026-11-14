@@ -18,9 +18,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from simsbn import batch_dynamics, decomposition, null_distribution, wright_fisher
-
-SURFACE, INK, MUTED, GRID = "#fcfcfb", "#0b0b0b", "#52514e", "#e4e3df"
-BLUE, ORANGE = "#2a78d6", "#eb6834"
+from simsbn.viz import BLUE, GRID, INK, ORANGE, SURFACE, apply_style
 
 
 def simulate(d, pop_size, generations, replicates, mutation_rate, seed):
@@ -51,18 +49,8 @@ def _classify(classes, f):
 def plot(pluripotent, diversity, late, null, d, pop_size, path):
     trivial = (1,) + (0,) * d
     null_pluripotent = 1 - null[trivial]
-    plt.rcParams.update(
-        {
-            "font.size": 10,
-            "axes.edgecolor": GRID,
-            "axes.labelcolor": MUTED,
-            "xtick.color": MUTED,
-            "ytick.color": MUTED,
-            "axes.spines.top": False,
-            "axes.spines.right": False,
-        }
-    )
-    fig = plt.figure(figsize=(11, 7.6), facecolor=SURFACE, layout="constrained")
+    apply_style()
+    fig = plt.figure(figsize=(11, 7.6), layout="constrained")
     grid = fig.add_gridspec(2, 2, width_ratios=[1.25, 1])
     ax_p, ax_d, ax_v = (
         fig.add_subplot(grid[0, 0]),
@@ -70,12 +58,6 @@ def plot(pluripotent, diversity, late, null, d, pop_size, path):
         fig.add_subplot(grid[:, 1]),
     )
     generations = np.arange(pluripotent.shape[1])
-    for ax in (ax_p, ax_d, ax_v):
-        ax.set_facecolor(SURFACE)
-        ax.grid(color=GRID, linewidth=0.8)
-        ax.set_axisbelow(True)
-        ax.tick_params(length=0)
-
     for row in pluripotent:
         ax_p.plot(generations, 100 * row, color=BLUE, linewidth=0.7, alpha=0.25)
     ax_p.plot(generations, 100 * pluripotent.mean(axis=0), color=BLUE, linewidth=2)
@@ -90,7 +72,9 @@ def plot(pluripotent, diversity, late, null, d, pop_size, path):
         arrowprops={"arrowstyle": "-", "color": INK, "linewidth": 0.8},
         bbox={"facecolor": SURFACE, "edgecolor": "none", "pad": 2},
     )
-    ax_p.set_title("Part d'individus pluripotents (PSBN)", loc="left", color=INK, fontweight="bold")
+    ax_p.set_title(
+        "Part d'individus pluripotents (PSBN)",
+    )
     ax_p.set_ylabel("% de la population")
     ax_p.set_ylim(bottom=0)
 
@@ -98,7 +82,7 @@ def plot(pluripotent, diversity, late, null, d, pop_size, path):
         ax_d.plot(generations, row, color=BLUE, linewidth=0.7, alpha=0.25)
     ax_d.plot(generations, diversity.mean(axis=0), color=BLUE, linewidth=2)
     ax_d.set_title(
-        "Dynamiques distinctes dans la population", loc="left", color=INK, fontweight="bold"
+        "Dynamiques distinctes dans la population",
     )
     ax_d.set_xlabel("génération")
     ax_d.set_ylabel(f"nombre (sur {pop_size} individus)")
@@ -129,8 +113,10 @@ def plot(pluripotent, diversity, late, null, d, pop_size, path):
     ax_v.set_xscale("log")
     ax_v.set_yticks(y, ["⟨" + ", ".join(map(str, v)) + "⟩" for v in vectors])
     ax_v.set_xlabel("% des individus (échelle logarithmique)")
-    ax_v.set_title("Vecteurs de décomposition", loc="left", color=INK, fontweight="bold")
-    ax_v.legend(loc="upper left", frameon=False, labelcolor=MUTED)
+    ax_v.set_title(
+        "Vecteurs de décomposition",
+    )
+    ax_v.legend(loc="upper left")
 
     replicates = pluripotent.shape[0]
     fig.suptitle(

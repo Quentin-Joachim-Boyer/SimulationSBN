@@ -27,6 +27,8 @@ Le paquet `simsbn` (dans `src/`), implémentation de référence en NumPy :
 | `core` | dynamique et fonction de transition d'une matrice de poids, attracteurs |
 | `sbf` | énumération des fonctions à seuil signées par dimension, borne des poids |
 | `evolution` | mutation d'un poids, population de Wright-Fisher avec lignées, modèle nul exact |
+| `tasks` | contextes, trajectoires et score d'un agent |
+| `viz` | style commun des figures |
 | `pluripotence` | nœuds de contrôle (sur les poids ou sur la dynamique), décomposition PSBN et PTBN, comptage exact des dynamiques décomposables |
 
     >>> import numpy as np
@@ -50,19 +52,27 @@ Des populations clonales évoluent sans sélection, et la figure
 d'individus pluripotents au cours des générations, diversité des dynamiques, fréquence
 de chaque vecteur de décomposition. Les séries sont aussi écrites dans `neutre.csv`.
 
+    python experiments/alterne/run.py
+
+Des agents doivent allumer ou éteindre un nœud moteur selon un contexte donné à l'état
+initial, en environnement fixe ou alterné. Protocole, hypothèse et résultat :
+`journal/2026-11-14_environnement-alterne.md`.
+
 ## Feuille de route
 
 1. **Noyau et mesures de pluripotence** — fait.
 2. **Évolution neutre** — fait : en dimension 3, la part de pluripotents converge vers
    les 2,99 % du modèle nul (fréquence des génotypes, et non des dynamiques). Reste à
    tracer les lignées dans le métagraphe.
-3. **Environnement alterné contre environnement fixe** : agents à nœuds capteurs,
-   internes et moteurs, et mesure de l'enrichissement en réseaux pluripotents.
+3. **Environnement alterné contre environnement fixe** — première expérience faite, en
+   dimension 3 : l'alternance ne dépasse pas le modèle nul, c'est l'environnement fixe
+   qui appauvrit en PSBN. Reste à essayer des tâches où chaque contexte demande une
+   dynamique, et la dimension 4.
 4. **Mesures graduées** : décompositions partielles, contrôle à plusieurs nœuds.
 5. **Mutations qui changent la dimension** : duplication et suppression de nœuds.
 6. **Organismes à plusieurs cellules** partageant un même SBN.
 
-Le noyau rapide (JAX, populations entières sur GPU) viendra à l'étape 3, et sera testé
+Le noyau rapide (JAX, populations entières sur GPU) viendra quand la dimension l'exigera, et sera testé
 contre l'implémentation de référence.
 
 ## Règles du dépôt
