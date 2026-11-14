@@ -11,14 +11,23 @@ import numpy as np
 from simsbn.sbf import sbf_counts, weight_bound
 
 
-def mutate(W: np.ndarray, rng: np.random.Generator, bound: int | None = None) -> np.ndarray:
+def mutate(
+    W: np.ndarray,
+    rng: np.random.Generator,
+    bound: int | None = None,
+    mask: np.ndarray | None = None,
+) -> np.ndarray:
     """Copie de ``W`` dont un poids, tiré au hasard, prend une autre valeur de ``[-B, B]``.
 
     C'est la règle de mutation du rapport de stage ; ``bound`` vaut ``B_d`` par défaut.
+    Avec ``mask`` (matrice booléenne), seuls les poids marqués peuvent muter.
     """
     d = W.shape[0]
     b = weight_bound(d) if bound is None else bound
-    i, j = rng.integers(d, size=2)
+    if mask is None:
+        i, j = rng.integers(d, size=2)
+    else:
+        i, j = np.argwhere(mask)[rng.integers(int(mask.sum()))]
     new = rng.integers(-b, b)  # 2B valeurs, décalées pour éviter la valeur actuelle
     out = W.copy()
     out[i, j] = new + (new >= W[i, j])
@@ -32,13 +41,14 @@ def wright_fisher(
     mutation_rate: float = 0.1,
     fitness: Callable[[np.ndarray, int], np.ndarray] | None = None,
     bound: int | None = None,
+    mask: np.ndarray | None = None,
 ) -> Iterator[tuple[int, np.ndarray, np.ndarray | None]]:
     """Fait évoluer une population ``(N, d, d)`` à effectif constant.
 
     À chaque génération, chaque individu choisit son parent dans la génération
     précédente, uniformément (évolution neutre, ``fitness=None``) ou avec une
     probabilité proportionnelle à ``fitness(population, génération)``, puis subit une mutation
-    avec la probabilité ``mutation_rate``.
+    avec la probabilité ``mutation_rate`` (``bound`` et ``mask`` : voir :func:`mutate`).
 
     Produit ``(génération, population, parents)``, où ``parents[k]`` est l'indice du
     parent de l'individu ``k`` (``None`` pour la population initiale). La suite des
@@ -55,7 +65,7 @@ def wright_fisher(
         parents = rng.choice(n, size=n, p=p)
         population = population[parents]
         for k in np.flatnonzero(rng.random(n) < mutation_rate):
-            population[k] = mutate(population[k], rng, bound)
+            population[k] = mutate(population[k], rng, bound, mask)
         yield generation, population, parents
 
 

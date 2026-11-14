@@ -18,6 +18,7 @@ from simsbn.pluripotence import (
     decomposition,
     is_control_node,
     is_psbn,
+    split_is_sbn,
 )
 from simsbn.sbf import WEIGHT_BOUND, sbf_counts, sbf_tables, weight_bound
 
@@ -36,6 +37,7 @@ __all__ = [
     "null_distribution",
     "sbf_counts",
     "sbf_tables",
+    "split_is_sbn",
     "transition",
     "weight_bound",
     "wright_fisher",

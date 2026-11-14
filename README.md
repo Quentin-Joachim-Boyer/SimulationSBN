@@ -27,6 +27,7 @@ Le paquet `simsbn` (dans `src/`), implémentation de référence en NumPy :
 | `core` | dynamique et fonction de transition d'une matrice de poids, attracteurs |
 | `sbf` | énumération des fonctions à seuil signées par dimension, borne des poids |
 | `evolution` | mutation d'un poids, population de Wright-Fisher avec lignées, modèle nul exact |
+| `agents` | architecture entrée / cerveau / moteur, comme SBN à topologie contrainte |
 | `tasks` | contextes, trajectoires et score d'un agent |
 | `viz` | style commun des figures |
 | `pluripotence` | nœuds de contrôle (sur les poids ou sur la dynamique), décomposition PSBN et PTBN, comptage exact des dynamiques décomposables |
@@ -58,6 +59,12 @@ Des agents doivent allumer ou éteindre un nœud moteur selon un contexte donné
 initial, en environnement fixe ou alterné. Protocole, hypothèse et résultat :
 `journal/2026-11-14_environnement-alterne.md`.
 
+    python experiments/cerveau_131/run.py     # environ 2 minutes
+
+Même comparaison avec des agents à rôles séparés : 1 nœud d'entrée maintenu par le
+contexte, 3 nœuds de cerveau, 1 nœud moteur sans retour vers le cerveau. Journal :
+`journal/2026-11-14_cerveau-131.md`.
+
 ## Feuille de route
 
 1. **Noyau et mesures de pluripotence** — fait.
@@ -66,8 +73,9 @@ initial, en environnement fixe ou alterné. Protocole, hypothèse et résultat :
    tracer les lignées dans le métagraphe.
 3. **Environnement alterné contre environnement fixe** — première expérience faite, en
    dimension 3 : l'alternance ne dépasse pas le modèle nul, c'est l'environnement fixe
-   qui appauvrit en PSBN. Reste à essayer des tâches où chaque contexte demande une
-   dynamique, et la dimension 4.
+   qui appauvrit en PSBN. Avec des agents 1/3/1 et une dynamique demandée par contexte,
+   l'alternance éloigne du sens PSBN (l'entrée devient activatrice) tout en restant
+   PTBN. Reste à varier la tâche pour vérifier cette explication.
 4. **Mesures graduées** : décompositions partielles, contrôle à plusieurs nœuds.
 5. **Mutations qui changent la dimension** : duplication et suppression de nœuds.
 6. **Organismes à plusieurs cellules** partageant un même SBN.

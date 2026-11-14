@@ -44,11 +44,17 @@ def is_psbn(f: Dynamics) -> bool:
     Il faut un nœud de contrôle ``c`` tel que, sur la face ``x_c = 1``, la fonction
     de chaque autre nœud soit encore une SBF (la face ``x_c = 0`` en est toujours un).
     """
+    return any(split_is_sbn(f, c) for c in control_nodes(f))
+
+
+def split_is_sbn(f: Dynamics, c: int) -> bool:
+    """Vrai si, sur la face ``x_c = 1``, la fonction de chaque autre nœud est une SBF.
+
+    Ne vérifie pas que ``c`` est un nœud de contrôle.
+    """
     d = len(f)
     sub = sbf_tables(d - 1)
-    return any(
-        all(restrict(f[j], d, c, 1) in sub for j in range(d) if j != c) for c in control_nodes(f)
-    )
+    return all(restrict(f[j], d, c, 1) in sub for j in range(d) if j != c)
 
 
 def count_psbn(d: int) -> int:
