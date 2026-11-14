@@ -66,7 +66,9 @@ def main():
     print({k: v for k, v in params.items()})
     for name, monde in (("espace", espace), ("mélangé", espace.melange())):
         print(f"\n{name}")
-        print(f"{'':10}{'effectif':>9}{'naiss./pas':>11}{'servies':>9}{'empois.':>9}{'déchet/case':>12}")
+        print(
+            f"{'':10}{'effectif':>9}{'naiss./pas':>11}{'servies':>9}{'empois.':>9}{'déchet/case':>12}"
+        )
         for label, genotype in TYPES.items():
             n, waste, s = monoculture(genotype, monde, args.steps, args.seed)
             print(
@@ -74,9 +76,10 @@ def main():
                 f"{100 * s['empoisonnees']:8.0f}%{waste * monde.cells / espace.cells:12.2f}"
             )
         shares = competition(monde, args.steps, args.rep, args.seed)
-        print("mélange des trois, parts finales : " + ", ".join(
-            f"{label} {100 * x:.0f} %" for label, x in zip(TYPES, shares, strict=True)
-        ))
+        print(
+            "mélange des trois, parts finales : "
+            + ", ".join(f"{label} {100 * x:.0f} %" for label, x in zip(TYPES, shares, strict=True))
+        )
     rng = np.random.default_rng([args.seed, 77])
     sizes = []
     for monde in (espace, espace.melange()):
@@ -87,7 +90,9 @@ def main():
             if (t + 1) % 100 == 0:
                 trace.append(len(vie))
         sizes.append(trace)
-    print(f"\ngénotypes uniformes, effectif tous les 100 pas : espace {sizes[0]}, mélangé {sizes[1]}")
+    print(
+        f"\ngénotypes uniformes, effectif tous les 100 pas : espace {sizes[0]}, mélangé {sizes[1]}"
+    )
 
 
 if __name__ == "__main__":

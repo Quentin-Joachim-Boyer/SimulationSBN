@@ -9,25 +9,20 @@ from __future__ import annotations
 
 import argparse
 import csv
-from itertools import product
 from pathlib import Path
 
 import numpy as np
 
-from simsbn import batch_dynamics, control_nodes, decomposition, is_psbn, split_is_sbn
-from simsbn.core import state_bits
 from simsbn.milieu import ARCH, Milieu, live, solitary_viable
-from simsbn.sbf import restrict
+from simsbn.structure import KINDS, Classifier, exact_brain_law
 from simsbn.viz import BLUE, INK, MUTED, ORANGE, apply_style
 
 BOUND = 3
-SENSOR = ARCH.inputs[0]
 REGIMES = {
     "constant": (Milieu(season=None), BLUE),
     "saisons": (Milieu(season=50), ORANGE),
     "neutre": (Milieu(neutral=True), MUTED),
 }
-KINDS = ["controle_cerveau", "psbn_cerveau", "scission_sbn", "controle_interne"]
 MEASURES = ["effectif", *KINDS, "action_x", "action_y", "servies"]
 PANELS = [  # (mesure, titre, indice du modèle nul uniforme ou None)
     ("effectif", "Effectif", None),
@@ -37,45 +32,6 @@ PANELS = [  # (mesure, titre, indice du modèle nul uniforme ou None)
     ("scission_sbn", "Part dont la face « capteur = 1 » est un SBN", 2),
     ("controle_interne", "Part à contrôle interne (plus de 2 feuilles PTBN)", 3),
 ]
-
-
-class Classifier:
-    """Mesures de pluripotence d'une population (ordre de ``KINDS``), par dynamique."""
-
-    def __init__(self):
-        self.kinds: dict[tuple[int, ...], tuple[bool, ...]] = {}
-
-    def flags(self, population) -> np.ndarray:
-        out = []
-        for f in map(tuple, batch_dynamics(population).tolist()):
-            if f not in self.kinds:
-                brain = tuple(restrict(f[j], ARCH.d, SENSOR, 0) for j in ARCH.brain)
-                self.kinds[f] = (
-                    bool(control_nodes(brain)),
-                    is_psbn(brain),
-                    split_is_sbn(f, SENSOR),
-                    sum(decomposition(f, "tbn")) > 2,
-                )
-            out.append(self.kinds[f])
-        return np.array(out, dtype=bool).reshape(len(out), len(KINDS))
-
-    def __call__(self, population) -> np.ndarray:
-        return self.flags(population).mean(axis=0)
-
-
-def exact_brain_law() -> tuple[float, float]:
-    """Parts exactes de cerveaux à nœud de contrôle et PSBN, poids uniformes dans [-3, 3]."""
-    cols = np.array(list(product(range(-BOUND, BOUND + 1), repeat=3)))
-    tables = (cols @ state_bits(3).T > 0) @ (1 << np.arange(8))
-    values, counts = np.unique(tables, return_counts=True)
-    control = psbn = 0
-    for f in product(range(len(values)), repeat=3):
-        dyn = tuple(int(values[k]) for k in f)
-        weight = int(np.prod(counts[list(f)]))
-        control += weight * bool(control_nodes(dyn))
-        psbn += weight * is_psbn(dyn)
-    total = len(cols) ** 3
-    return control / total, psbn / total
 
 
 def simulate(milieu, classify, pop, steps, replicates, mutation_rate, every, seed, tag):
@@ -149,7 +105,7 @@ def main():
     # Modèles nuls : loi uniforme, exacte pour le cerveau seul, estimée pour le reste.
     sample = ARCH.random(np.random.default_rng([args.seed, 999]), args.null, BOUND)
     null = classify(sample)
-    exact = exact_brain_law()
+    exact = exact_brain_law(BOUND)
     null[:2] = exact
 
     def row(label, v, extra=""):

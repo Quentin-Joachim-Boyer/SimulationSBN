@@ -41,7 +41,7 @@ class Monde:
     width: int = 32
     inflow: float = 200.0  # unités de nourriture par pas, sur tout le monde
     food_cap: int = 5  # nourriture maximale d'une case
-    tox: float = 10.0  # stock de déchet d'une case où l'empoisonnement est certain
+    tox: float = 20.0  # stock de déchet d'une case où l'empoisonnement est certain
     decay: float = 0.05  # part du déchet qui disparaît à chaque pas
     gain: int = 4
     upkeep: int = 1
