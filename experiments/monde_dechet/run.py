@@ -17,7 +17,7 @@ import numpy as np
 from commun import BOUND, ESPACE, REGIMES, naissance
 
 from simsbn.milieu import ARCH
-from simsbn.stats import permutation_test
+from simsbn.stats import format_p, permutation_test
 from simsbn.structure import KINDS, Classifier, exact_brain_law
 from simsbn.viz import BLUE, INK, MUTED, ORANGE, apply_style
 
@@ -179,7 +179,7 @@ def main():
         m = MEASURES.index(name)
         pairs = (("espace", "neutre"), ("mélangé", "neutre"), ("espace", "mélangé"))
         p = [permutation_test(per_pop[a][m], per_pop[b][m], rng) for a, b in pairs]
-        print(f"{name:18}" + "".join(f"{x:16.4f}" for x in p))
+        print(f"{name:18}" + "".join(f"{format_p(x):>16}" for x in p))
 
     print("\npoids du capteur dans les populations finales : part de négatifs / nuls / positifs")
     for regime in REGIMES:

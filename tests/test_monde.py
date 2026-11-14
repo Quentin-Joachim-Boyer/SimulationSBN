@@ -2,8 +2,18 @@ from dataclasses import replace
 
 import numpy as np
 
-from simsbn.milieu import ARCH
-from simsbn.monde import EAT, IMMOBILE, MARCHEUR, MOVE, REACTIF, Monde, Vie, handmade
+from simsbn.milieu import ARCH, step_brains
+from simsbn.monde import (
+    ALTERNANT,
+    EAT,
+    IMMOBILE,
+    MARCHEUR,
+    MOVE,
+    REACTIF,
+    Monde,
+    Vie,
+    handmade,
+)
 
 CLEAN = Monde(height=1, width=8, inflow=0.0, tox=np.inf)  # ni apport ni poison
 
@@ -69,6 +79,7 @@ def test_a_cell_never_serves_more_than_its_stock():
     assert sorted(vie.energy.tolist()) == [8] * 7 + [12] * 5
     assert vie.food[0] == 0 and vie.waste[0] == 5
     assert vie.sensor.sum() == 5  # le capteur suit la hausse d'énergie
+    assert vie.fed.sum() == 5 and np.array_equal(vie.fed, vie.sensor.astype(bool))
 
 
 def test_waste_poisons_those_who_ingest_and_decays():
@@ -82,6 +93,7 @@ def test_waste_poisons_those_who_ingest_and_decays():
     vie.step()
     poisoned = vie.energy == 10 - 2 - 4
     assert 70 <= poisoned[:200].sum() <= 130
+    assert np.array_equal(vie.poisoned, poisoned) and not vie.fed.any()
     assert (vie.energy[200:] == 9).all()
     faster = Vie(IMMOBILE[None], replace(monde, decay=0.5), np.random.default_rng(4))
     faster.waste[:] = 1000
@@ -98,6 +110,7 @@ def test_food_and_waste_bookkeeping_over_a_long_run():
     assert vie.waste.sum() == vie.counts["served"]  # sans disparition, tout déchet reste
     assert len(vie) > 0 and vie.counts["births"] > 0
     assert len(set(vie.ident.tolist())) == len(vie)
+    assert len(vie.fed) == len(vie.poisoned) == len(vie)
     assert set(vie.lineage.tolist()) <= set(range(40))
 
 
@@ -147,3 +160,15 @@ def test_run_is_reproducible_and_mutates_only_evolving_weights():
     assert (np.abs(a.population) <= 3).all()
     assert (a.population[:, ~ARCH.mask()] == start[0][~ARCH.mask()]).all()
     assert EAT == 0 and MOVE == 1
+
+
+def test_alternating_agent_moves_always_when_unwell_and_every_other_step_when_well():
+    def moves(sensor):
+        brain, out = np.array([[1, 1, 0]]), []
+        for _ in range(6):
+            brain = step_brains(ALTERNANT[None], np.array([sensor]), brain)
+            out.append(int(brain[0, MOVE]))
+        return out
+
+    assert moves(0) == [1, 1, 1, 1, 1, 1]
+    assert moves(1) == [0, 1, 0, 1, 0, 1]

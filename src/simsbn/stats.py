@@ -21,3 +21,13 @@ def permutation_test(a, b, rng: np.random.Generator, n: int = 20_000) -> float:
     shuffled = rng.permuted(np.broadcast_to(pooled, (n, len(pooled))), axis=1)
     gaps = np.abs(shuffled[:, : len(a)].mean(axis=1) - shuffled[:, len(a) :].mean(axis=1))
     return float((1 + (gaps >= observed - 1e-12).sum()) / (n + 1))
+
+
+def format_p(p: float, sign: bool = False) -> str:
+    """Valeur p lisible : ``< 0,0001`` plutôt qu'un zéro trompeur."""
+    if np.isnan(p):
+        return "n.d."
+    if p < 1e-4:
+        return "< 0,0001"
+    text = f"{p:.4f}".replace(".", ",")
+    return f"= {text}" if sign else text

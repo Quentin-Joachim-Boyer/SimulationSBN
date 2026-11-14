@@ -68,7 +68,8 @@ class Vie:
     Attributs, un élément par agent vivant : ``population`` (génotypes ``(N, 4, 4)``),
     ``brain`` ``(N, 3)``, ``sensor``, ``energy``, ``cell`` (indice ``ligne * largeur +
     colonne``), ``ident`` (numéro unique) et ``lineage`` (numéro de l'ancêtre de départ).
-    ``food`` et ``waste`` ont un élément par case.
+    ``fed`` et ``poisoned`` disent ce qui est arrivé à l'agent au dernier pas (faux pour
+    un nouveau-né). ``food`` et ``waste`` ont un élément par case.
     """
 
     def __init__(
@@ -90,6 +91,8 @@ class Vie:
         self.ident = np.arange(n)
         self.lineage = np.arange(n)
         self.next_ident = n
+        self.fed = np.zeros(n, dtype=bool)
+        self.poisoned = np.zeros(n, dtype=bool)
         self.food = np.full(monde.cells, monde.food_cap, dtype=np.int64)
         self.waste = np.zeros(monde.cells, dtype=np.int64)
         self.t = 0
@@ -172,12 +175,14 @@ class Vie:
         energy = self.energy + w.gain * units - cost
         self.sensor = (energy > self.energy).astype(np.int64)
         self.energy = energy
+        self.fed, self.poisoned = units > 0, poisoned
         self.brain = step_brains(self.population, self.sensor, self.brain)
 
         # 5. Morts, puis divisions sur la case du parent.
         alive = self.energy > 0
         self.counts["deaths"] += int(n - alive.sum())
-        for name in ("population", "brain", "sensor", "energy", "cell", "ident", "lineage"):
+        names = ("population", "brain", "sensor", "energy", "cell", "ident", "lineage")
+        for name in (*names, "fed", "poisoned"):
             setattr(self, name, getattr(self, name)[alive])
         parents = np.flatnonzero(self.energy >= w.divide_at)
         if len(parents):
@@ -192,6 +197,9 @@ class Vie:
             self.population = np.concatenate([self.population, children])
             self.energy = np.concatenate([self.energy, share])
             self.ident = np.concatenate([self.ident, idents])
+            for name in ("fed", "poisoned"):
+                born = np.zeros(len(parents), dtype=bool)
+                setattr(self, name, np.concatenate([getattr(self, name), born]))
             for name in ("brain", "sensor", "cell", "lineage"):
                 values = getattr(self, name)
                 setattr(self, name, np.concatenate([values, values[parents]]))
@@ -219,3 +227,6 @@ def handmade(**arcs: int) -> np.ndarray:
 IMMOBILE = handmade(s_e=1, e_e=1)  # ingère toujours, ne bouge jamais
 MARCHEUR = handmade(s_e=1, e_e=1, e_m=1)  # ingère et bouge toujours
 REACTIF = handmade(s_e=1, e_e=1, e_m=1, s_m=-3)  # bouge seulement quand le capteur vaut 0
+# Bouge toujours quand le capteur vaut 0, un pas sur deux quand il vaut 1 (ajouté après
+# l'expérience : c'est le comportement que l'évolution a trouvé en régime espace).
+ALTERNANT = handmade(s_e=1, e_e=1, e_m=2, m_m=-1, s_m=-1)

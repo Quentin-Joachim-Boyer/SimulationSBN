@@ -164,4 +164,105 @@ pour voir si le mécanisme supposé par l'hypothèse 2 est le bon.
 
 ## Résultat
 
-À remplir.
+`python experiments/monde_dechet/run.py`, graine 0, 24 populations par régime, 20 000 pas.
+Une valeur par population (moyenne de la seconde moitié), puis moyenne ± écart-type entre
+populations. Aucune extinction.
+
+|                                  | Mélangé      | Espace        | Neutre        | Loi uniforme |
+|----------------------------------|--------------|---------------|---------------|--------------|
+| Effectif                         | 294          | 171           | 400           |              |
+| Naissances par pas               | 8,1          | 5,4           | 8,0           |              |
+| P(bouger, capteur 0)             | 0,2 %        | 94,1 ± 9,1 %  | 33,8 ± 9,8 %  |              |
+| P(bouger, capteur 1)             | 0,2 %        | 43,6 ± 2,3 %  | 42,3 ± 10,5 % |              |
+| **Dépendance au contexte**       | 0,0 ± 0,1    | +50,6 ± 10,6  | -8,5 ± 9,8    |              |
+| P(ingérer), capteur 0 puis 1     | 99,4 / 99,9 %| 98,0 / 99,8 % | 38,0 / 46,1 % |              |
+| Demandes servies                 | 68,2 %       | 79,7 %        |               |              |
+| Ingestions empoisonnées          | 18,6 %       | 15,9 %        |               |              |
+| Nœud de contrôle (cerveau seul)  | 17,6 ± 8,2 % | 9,0 ± 9,9 %   | 9,5 ± 8,5 %   | 8,49 %       |
+| PSBN (cerveau seul)              | 7,8 ± 4,8 %  | 1,0 ± 3,2 %   | 3,1 ± 3,2 %   | 2,49 %       |
+| Scission SBN                     | 13,8 ± 10,1 %| 9,6 ± 11,8 %  | 12,2 ± 9,0 %  | 11,96 %      |
+| Contrôle interne                 | 19,1 ± 8,5 % | 11,4 ± 10,2 % | 11,1 ± 8,4 %  | 9,75 %       |
+
+Valeurs p du test par permutation :
+
+|                        | Espace / neutre | Mélangé / neutre | Espace / mélangé |
+|------------------------|-----------------|------------------|------------------|
+| Dépendance au contexte | < 0,0001        | < 0,0001         | < 0,0001         |
+| Scission SBN           | 0,42            | 0,57             | 0,21             |
+| Nœud de contrôle       | 0,86            | 0,0024           | 0,0027           |
+| PSBN (cerveau seul)    | 0,035           | 0,0002           | < 0,0001         |
+| Contrôle interne       | 0,89            | 0,0029           | 0,0072           |
+
+- **Hypothèse 1 : confirmée pour l'essentiel.** En régime espace, les agents bougent
+  94 % du temps quand le capteur vaut 0 et 44 % quand il vaut 1 : dépendance de +51
+  points, contre -9 en régime neutre (p < 0,0001). En régime mélangé le déplacement
+  disparaît (0,2 %) et la dépendance est nulle. Une erreur dans l'énoncé : je supposais
+  la dépendance nulle en régime neutre. Elle y est négative, parce qu'un cerveau tiré au
+  hasard est un peu plus actif quand son capteur est allumé ; le régime mélangé diffère
+  donc du neutre, mais par absence de mouvement.
+- **Hypothèse 2 : réfutée.** La scission SBN n'est pas enrichie en régime espace (9,6 %
+  contre 12,2 % en régime neutre, p = 0,42). Le mécanisme supposé est pourtant le bon :
+  dans les populations finales, le poids capteur → déplacement est négatif chez 99 % des
+  agents (48 % en régime neutre). Mais la scission exige qu'aucun des trois poids du
+  capteur ne soit positif, et les deux autres restent libres : cette condition n'est
+  remplie que par 25 % des agents, comme en régime neutre (24 %).
+- **Hypothèse 3 : confirmée en régime mélangé, réfutée en régime espace.** Nœud de
+  contrôle du cerveau seul : 17,6 % en régime mélangé contre 9,5 % en neutre (p = 0,0024),
+  mais 9,0 % en régime espace (p = 0,86). Je n'ai pas cherché pourquoi l'ingestion, qui
+  s'entretient dans les deux mondes, ne donne un nœud de contrôle que dans l'un.
+- **Sans prédiction.** En régime mélangé, PSBN du cerveau seul (7,8 % contre 3,1 %,
+  p = 0,0002) et contrôle interne (19,1 % contre 11,1 %, p = 0,0029) sont enrichis.
+  C'est le premier enrichissement en PSBN du projet, et il apparaît là où le comportement
+  ne dépend d'aucun contexte : les agents ingèrent toujours et ne bougent jamais. En
+  régime espace, le PSBN tend au contraire à baisser (1,0 %, p = 0,035, au-dessus du seuil).
+
+**Réponse aux deux questions.** 1. Oui : la survie seule sélectionne un comportement qui
+dépend du contexte quand ce contexte est produit localement par les agents, et pas quand
+le monde est bien mélangé. 2. Non : cette dépendance ne s'accompagne d'aucun
+enrichissement des mesures de structure. Celles-ci montent au contraire dans le monde où
+rien ne dépend du contexte. Telles qu'elles sont définies, elles semblent repérer des
+nœuds figés plutôt qu'une fonction qui change avec le contexte.
+
+**Régime neutre.** Il est compatible avec la loi uniforme sur les quatre mesures (écarts
+de moins d'une erreur standard). L'écart vu dans l'expérience précédente, avec 12
+populations, était donc probablement du bruit.
+
+### Analyse après coup (non prévue)
+
+`python experiments/monde_dechet/motifs.py`, sur les populations finales.
+
+- **Ce que l'évolution a trouvé n'est pas le « réactif » construit à la main.** Quand le
+  capteur vaut 0, le nœud de déplacement reste allumé ; quand il vaut 1, il oscille, un
+  pas sur deux. L'agent qui vient de bien manger reste donc un pas, puis repart même si
+  tout va bien. Ce motif (point fixe dans un contexte, cycle de période 2 dans l'autre)
+  est porté par 54,5 % des agents en régime espace et majoritaire dans 14 populations
+  sur 24, contre 0,8 % en régime neutre (p < 0,0001). 26 % d'autres agents ont le même
+  point fixe et un comportement sous capteur 1 qui dépend de l'état du nœud caché.
+- **C'est le déchet qui fait cette différence.** Agents construits à la main, mutation
+  coupée, 8 populations : avec le poison, l'« alternant » élimine le réactif ; sans
+  poison (seuil infini), le réactif élimine l'alternant. Rester, c'est manger dans son
+  propre déchet.
+
+C'est une pluripotence fonctionnelle au sens du projet : deux dynamiques de nature
+différente selon le contexte, obtenues sans cible. Elle est invisible pour les quatre
+mesures de structure.
+
+### Limites
+
+- Une graine, un seul jeu de paramètres, calibré pour que la sensibilité au contexte
+  paie : l'hypothèse 1 en dépend, pas la forme du comportement trouvé.
+- Quinze tests ; le seuil de 0,01 valait pour les trois hypothèses, le reste est
+  exploratoire.
+- Les effectifs diffèrent (171, 294, 400), donc la dérive aussi.
+- L'analyse des motifs a été décidée après avoir vu les résultats.
+- Les mesures de structure portent sur toute la dynamique, y compris des états que les
+  agents ne visitent jamais ; c'est peut-être ce qui les rend aveugles au motif trouvé.
+
+## Suites possibles
+
+- Une mesure de pluripotence restreinte aux états visités, ou définie sur les attracteurs
+  de chaque face (point fixe contre cycle), pour voir si elle capte le motif trouvé.
+- Refaire l'expérience sans poison : le motif attendu devient « rester tant que tout va
+  bien », un point fixe dans les deux contextes.
+- Deux capteurs (nourri, toxique) ; un déchet qui diffuse ; des apports en taches.
+- Comprendre l'enrichissement en PSBN du régime mélangé : quels nœuds sont figés.

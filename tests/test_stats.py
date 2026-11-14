@@ -1,6 +1,6 @@
 import numpy as np
 
-from simsbn.stats import permutation_test
+from simsbn.stats import format_p, permutation_test
 
 
 def test_permutation_test_separates_distinct_groups_only():
@@ -20,3 +20,9 @@ def test_permutation_test_ignores_missing_populations():
     rng = np.random.default_rng(2)
     assert permutation_test([1.0, np.nan, 2.0], [1.5, 1.4, np.nan], rng) > 0.05
     assert np.isnan(permutation_test([np.nan], [1.0], rng))
+
+
+def test_format_p_never_prints_a_misleading_zero():
+    assert format_p(1 / 20001) == "< 0,0001"
+    assert format_p(0.0024) == "0,0024" and format_p(0.0024, sign=True) == "= 0,0024"
+    assert format_p(float("nan")) == "n.d."
