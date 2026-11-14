@@ -84,6 +84,23 @@ testés, mais pas utilisés ici : sans capteur qui indique une direction, ils n'
 
 Une séance. Aucun réglage du monde. Une extinction est notée telle quelle.
 
+## Prolongation (décidée après le premier lancement, écrite avant de la lancer)
+
+Vu à la fin du premier lancement, avant toute autre analyse : en régime espace à lecture
+retardée, la dépendance au contexte monte encore au pas 20 000 (moyenne vers +25 points,
+populations étalées de -18 à +50). Le régime n'est pas à l'équilibre, donc la moyenne de
+la seconde moitié ne dit pas si le délai réduit la dépendance ou s'il ralentit seulement
+son évolution.
+
+`python experiments/moteurs_lecteurs/prolongation.py` : les mêmes 24 populations du régime
+espace retardé (même graine, donc mêmes 20 000 premiers pas), poursuivies jusqu'à
+100 000 pas. Mesure : dépendance moyenne sur les 10 000 derniers pas.
+
+**Hypothèse 6.** Le délai ralentit sans empêcher : sur les 10 000 derniers pas, la
+dépendance moyenne dépasse +40 points, et au moins 18 populations sur 24 dépassent +40.
+Réfutation : moyenne inférieure à +40, ou moins de 18 populations. Les trois populations
+à -18 peuvent être coincées dans un rythme aveugle ; je n'en sais rien.
+
 ## Résultat
 
 À remplir.
