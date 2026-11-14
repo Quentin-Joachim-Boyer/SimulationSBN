@@ -28,6 +28,7 @@ Le paquet `simsbn` (dans `src/`), implémentation de référence en NumPy :
 | `sbf` | énumération des fonctions à seuil signées par dimension, borne des poids |
 | `evolution` | mutation d'un poids, population de Wright-Fisher avec lignées, modèle nul exact |
 | `agents` | architecture entrée / cerveau / moteur, comme SBN à topologie contrainte |
+| `simulability` | cible simulée par un cerveau sur ses nœuds visibles |
 | `tasks` | contextes, trajectoires et score d'un agent |
 | `viz` | style commun des figures |
 | `pluripotence` | nœuds de contrôle (sur les poids ou sur la dynamique), décomposition PSBN et PTBN, comptage exact des dynamiques décomposables |
@@ -65,6 +66,12 @@ Même comparaison avec des agents à rôles séparés : 1 nœud d'entrée mainte
 contexte, 3 nœuds de cerveau, 1 nœud moteur sans retour vers le cerveau. Journal :
 `journal/2026-11-14_cerveau-131.md`.
 
+    python experiments/simulabilite/run.py    # calcul exact, quelques secondes
+
+Table de simulabilité : pour chaque paire de cibles de dimension 2, combien de cerveaux
+de dimension 3 simulent l'une sans contexte et l'autre sous contexte, et quelle part
+est un PSBN. Journal : `journal/2026-11-14_simulabilite.md`.
+
 ## Feuille de route
 
 1. **Noyau et mesures de pluripotence** — fait.
@@ -75,7 +82,10 @@ contexte, 3 nœuds de cerveau, 1 nœud moteur sans retour vers le cerveau. Journ
    dimension 3 : l'alternance ne dépasse pas le modèle nul, c'est l'environnement fixe
    qui appauvrit en PSBN. Avec des agents 1/3/1 et une dynamique demandée par contexte,
    l'alternance éloigne du sens PSBN (l'entrée devient activatrice) tout en restant
-   PTBN. Reste à varier la tâche pour vérifier cette explication.
+   PTBN. Le calcul exact de simulabilité montre qu'entre cibles SBN, le contexte ne
+   peut que relever des seuils (225 paires simulables sur 1 296) et que le nœud caché
+   n'ajoute aucune paire. Reste à faire évoluer des populations sur des paires choisies
+   dans cette table.
 4. **Mesures graduées** : décompositions partielles, contrôle à plusieurs nœuds.
 5. **Mutations qui changent la dimension** : duplication et suppression de nœuds.
 6. **Organismes à plusieurs cellules** partageant un même SBN.
