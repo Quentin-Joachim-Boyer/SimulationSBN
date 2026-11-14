@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+.pytest_cache/
+.ruff_cache/
+.hypothesis/
+dist/
+build/
+
+# Résultats d'expériences : jamais dans git (ils se régénèrent, une commande par figure)
+experiments/**/out/
+*.csv
+*.csv.gz
+*.npz
+*.parquet
+
+# Éditeurs
+.idea/
+.vscode/

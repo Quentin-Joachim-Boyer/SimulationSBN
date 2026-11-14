@@ -1,0 +1,29 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "simsbn"
+version = "0.1.0"
+description = "Simulation d'agents modélisés par des réseaux booléens à signe (SBN), sous l'angle de la pluripotence."
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [{ name = "Quentin Joachim Boyer" }]
+dependencies = ["numpy>=1.26"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "hypothesis>=6", "ruff>=0.6"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/simsbn"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = ["slow: tests longs (dimension 5), exclus par défaut avec -m 'not slow'"]
+
+[tool.ruff]
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "NPY"]
