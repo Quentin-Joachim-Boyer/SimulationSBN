@@ -29,6 +29,7 @@ Le paquet `simsbn` (dans `src/`), implémentation de référence en NumPy :
 | `evolution` | mutation d'un poids, population de Wright-Fisher avec lignées, modèle nul exact |
 | `agents` | architecture entrée / cerveau / moteur, comme SBN à topologie contrainte |
 | `simulability` | cible simulée par un cerveau sur ses nœuds visibles |
+| `milieu` | milieu partagé à deux ressources : énergie, mort, division, viabilité en solitaire |
 | `tasks` | contextes, trajectoires et score d'un agent |
 | `viz` | style commun des figures |
 | `pluripotence` | nœuds de contrôle (sur les poids ou sur la dynamique), décomposition PSBN et PTBN, comptage exact des dynamiques décomposables |
@@ -72,6 +73,12 @@ Table de simulabilité : pour chaque paire de cibles de dimension 2, combien de 
 de dimension 3 simulent l'une sans contexte et l'autre sous contexte, et quelle part
 est un PSBN. Journal : `journal/2026-11-14_simulabilite.md`.
 
+    python experiments/milieu_partage/run.py  # environ 4 minutes
+
+Milieu partagé, sans cible ni fitness : les agents ingèrent deux ressources, meurent
+d'épuisement ou se divisent, en régime constant, à saisons ou neutre. Journal :
+`journal/2026-11-14_milieu-partage.md`.
+
 ## Feuille de route
 
 1. **Noyau et mesures de pluripotence** — fait.
@@ -85,7 +92,9 @@ est un PSBN. Journal : `journal/2026-11-14_simulabilite.md`.
    PTBN. Le calcul exact de simulabilité montre qu'entre cibles SBN, le contexte ne
    peut que relever des seuils (225 paires simulables sur 1 296) et que le nœud caché
    n'ajoute aucune paire. Reste à faire évoluer des populations sur des paires choisies
-   dans cette table.
+   dans cette table. Dans un milieu partagé où la survie seule sélectionne, les agents
+   ingèrent tout en permanence et ignorent leur capteur : aucun comportement ne dépend
+   du contexte, et le régime à saisons se fige. Résultat négatif, protocole à revoir.
 4. **Mesures graduées** : décompositions partielles, contrôle à plusieurs nœuds.
 5. **Mutations qui changent la dimension** : duplication et suppression de nœuds.
 6. **Organismes à plusieurs cellules** partageant un même SBN.
