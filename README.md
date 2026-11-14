@@ -14,7 +14,7 @@ dépend pas : les notions utiles sont réécrites ici, et validées contre ses r
 ## Installation
 
     python -m venv .venv && source .venv/bin/activate
-    pip install -e ".[dev]"
+    pip install -e ".[dev,viz]"
     pytest                 # ajouter -m "not slow" pour sauter la dimension 5
     ruff check .
 
@@ -26,6 +26,7 @@ Le paquet `simsbn` (dans `src/`), implémentation de référence en NumPy :
 |---|---|
 | `core` | dynamique et fonction de transition d'une matrice de poids, attracteurs |
 | `sbf` | énumération des fonctions à seuil signées par dimension, borne des poids |
+| `evolution` | mutation d'un poids, population de Wright-Fisher avec lignées, modèle nul exact |
 | `pluripotence` | nœuds de contrôle (sur les poids ou sur la dynamique), décomposition PSBN et PTBN, comptage exact des dynamiques décomposables |
 
     >>> import numpy as np
@@ -40,11 +41,21 @@ Les tests retrouvent les nombres du rapport de stage (32 et 370 SBF, 2 977 dynam
 nœud de contrôle et 658 PSBN en dimension 3, 1,19e7 en dimension 4) et les vecteurs de
 décomposition de PluripotentSBN sur les 32 768 dynamiques de dimension 3.
 
+## Visualiser une simulation
+
+    python experiments/neutre/run.py        # options : --d --pop --gen --rep --mu --seed
+
+Des populations clonales évoluent sans sélection, et la figure
+`experiments/neutre/out/neutre.png` compare la simulation au modèle nul exact : part
+d'individus pluripotents au cours des générations, diversité des dynamiques, fréquence
+de chaque vecteur de décomposition. Les séries sont aussi écrites dans `neutre.csv`.
+
 ## Feuille de route
 
 1. **Noyau et mesures de pluripotence** — fait.
-2. **Évolution neutre** : mutations d'un poids, population, lignées. Les fréquences des
-   dynamiques doivent retrouver leur nombre de génotypes : c'est le modèle nul.
+2. **Évolution neutre** — fait : en dimension 3, la part de pluripotents converge vers
+   les 2,99 % du modèle nul (fréquence des génotypes, et non des dynamiques). Reste à
+   tracer les lignées dans le métagraphe.
 3. **Environnement alterné contre environnement fixe** : agents à nœuds capteurs,
    internes et moteurs, et mesure de l'enrichissement en réseaux pluripotents.
 4. **Mesures graduées** : décompositions partielles, contrôle à plusieurs nœuds.

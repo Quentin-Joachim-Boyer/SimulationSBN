@@ -28,6 +28,19 @@ def dynamics(W) -> tuple[int, ...]:
     return tuple(column_table(W[:, j]) for j in range(W.shape[0]))
 
 
+def batch_dynamics(population) -> np.ndarray:
+    """Dynamiques d'une population ``(N, d, d)`` : tableau ``(N, d)`` de tables de vérité.
+
+    Version vectorisée de :func:`dynamics`, limitée à ``d <= 5`` (tables sur 64 bits).
+    """
+    population = np.asarray(population)
+    d = population.shape[-1]
+    if d > 5:
+        raise ValueError("batch_dynamics est limité à d <= 5")
+    active = np.einsum("si,nij->njs", state_bits(d), population) > 0  # (N, nœud, état)
+    return active.astype(np.uint64) @ (np.uint64(1) << np.arange(1 << d, dtype=np.uint64))
+
+
 def transition(W) -> np.ndarray:
     """Fonction de transition : tableau ``F`` de taille ``2^d`` où ``F[s]`` suit ``s``."""
     W = _square(W)

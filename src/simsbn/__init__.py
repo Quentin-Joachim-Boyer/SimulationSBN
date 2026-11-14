@@ -10,7 +10,8 @@ Conventions, identiques dans tout le paquet :
 - une dynamique est le tuple ``(f_0, ..., f_{d-1})`` des tables de vérité de ses nœuds.
 """
 
-from simsbn.core import attractors, column_table, dynamics, transition
+from simsbn.core import attractors, batch_dynamics, column_table, dynamics, transition
+from simsbn.evolution import mutate, null_distribution, wright_fisher
 from simsbn.pluripotence import (
     control_nodes,
     count_psbn,
@@ -18,11 +19,12 @@ from simsbn.pluripotence import (
     is_control_node,
     is_psbn,
 )
-from simsbn.sbf import WEIGHT_BOUND, sbf_tables, weight_bound
+from simsbn.sbf import WEIGHT_BOUND, sbf_counts, sbf_tables, weight_bound
 
 __all__ = [
     "WEIGHT_BOUND",
     "attractors",
+    "batch_dynamics",
     "column_table",
     "control_nodes",
     "count_psbn",
@@ -30,7 +32,11 @@ __all__ = [
     "dynamics",
     "is_control_node",
     "is_psbn",
+    "mutate",
+    "null_distribution",
+    "sbf_counts",
     "sbf_tables",
     "transition",
     "weight_bound",
+    "wright_fisher",
 ]

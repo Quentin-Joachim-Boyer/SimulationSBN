@@ -45,6 +45,19 @@ def sbf_tables(d: int) -> dict[int, tuple[int, ...]]:
     return tables
 
 
+@cache
+def sbf_counts(d: int) -> dict[int, int]:
+    """Nombre de colonnes de poids de ``[-B_d, B_d]^d`` qui réalisent chaque SBF."""
+    if d == 0:
+        return {0: 1}
+    b = weight_bound(d)
+    cols = np.array(list(product(range(-b, b + 1), repeat=d)), dtype=np.int64)
+    active = cols @ state_bits(d).T > 0
+    tts = active.astype(np.uint64) @ (np.uint64(1) << np.arange(1 << d, dtype=np.uint64))
+    values, counts = np.unique(tts, return_counts=True)
+    return dict(zip(values.tolist(), counts.tolist(), strict=True))
+
+
 def projection(d: int, c: int) -> int:
     """Table de vérité de ``x -> x_c``, la fonction d'un nœud de contrôle."""
     return sum(1 << s for s in range(1 << d) if (s >> c) & 1)
