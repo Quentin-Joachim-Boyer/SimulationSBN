@@ -65,9 +65,14 @@ class Snapshot:
 
 
 def step_brains(population, sensor, brain) -> np.ndarray:
-    """État suivant des cerveaux ``(N, 3)``, le capteur ``(N,)`` étant imposé."""
+    """État suivant des cerveaux ``(N, 3)``, le capteur ``(N,)`` étant imposé.
+
+    Seuls le capteur et le cerveau sont lus : d'éventuels nœuds moteurs, rangés après
+    eux dans la matrice, n'ont aucun effet.
+    """
     inputs = np.concatenate([sensor[:, None], brain], axis=1)
-    return (np.einsum("ni,nij->nj", inputs, population[:, :, 1:]) > 0).astype(np.int64)
+    weights = population[:, : ARCH.d, 1 : ARCH.d]
+    return (np.einsum("ni,nij->nj", inputs, weights) > 0).astype(np.int64)
 
 
 def live(

@@ -22,11 +22,69 @@ from dataclasses import dataclass, replace
 
 import numpy as np
 
+from simsbn.agents import Architecture
 from simsbn.evolution import mutate
 from simsbn.milieu import ARCH, step_brains
 
 EAT, MOVE = 0, 1  # nœuds d'action, parmi les trois nœuds du cerveau
 STEPS = np.array([[-1, 0], [1, 0], [0, -1], [0, 1]])  # déplacements (ligne, colonne)
+DIRECTIONS = {"nord": (-1, 0), "sud": (1, 0), "ouest": (0, -1), "est": (0, 1)}
+ROLES = ("ingérer", "bouger", *DIRECTIONS)  # « bouger » : une case voisine au hasard
+
+
+@dataclass(frozen=True)
+class Corps:
+    """Comment les actions d'un agent se lisent sur son réseau.
+
+    Sans moteur (le défaut), elles se lisent directement sur les nœuds ``EAT`` et
+    ``MOVE`` du cerveau. Sinon chaque moteur est un nœud lecteur, rangé après le cerveau
+    dans la matrice : il lit le cerveau seul, et rien ne revient de lui.
+
+    - ``delay=True`` : le moteur est un nœud SBN ordinaire, mis à jour en même temps que
+      le cerveau ; il a donc un pas de retard sur lui, et l'agent réagit en deux pas ;
+    - ``delay=False`` : le moteur suit le cerveau du pas même.
+
+    Les effets des moteurs de déplacement s'additionnent : nord et sud s'annulent, nord
+    et est donnent une diagonale. Chaque moteur allumé coûte.
+    """
+
+    motors: tuple[str, ...] = ()
+    delay: bool = True
+
+    def __post_init__(self):
+        unknown = set(self.motors) - set(ROLES)
+        if unknown or len(set(self.motors)) != len(self.motors):
+            raise ValueError(f"moteurs inconnus ou répétés : {self.motors}")
+
+    @property
+    def arch(self) -> Architecture:
+        return Architecture(ARCH.n_in, ARCH.n_brain, len(self.motors))
+
+    @property
+    def lagged(self) -> bool:
+        """Vrai si les actions ont un pas de retard sur le cerveau."""
+        return bool(self.motors) and self.delay
+
+    def one_hot(self, genotype: np.ndarray) -> np.ndarray:
+        """Génotype à lecture directe, porté dans ce corps : un nœud, un moteur.
+
+        ``genotype`` est une matrice ``(4, 4)`` de :mod:`simsbn.milieu`. Le moteur
+        « ingérer » lit le seul nœud ``EAT`` et « bouger » le seul nœud ``MOVE``, avec
+        un poids 1 ; les autres moteurs ne lisent rien.
+        """
+        W = np.zeros((self.arch.d, self.arch.d), dtype=np.int64)
+        W[: ARCH.d, : ARCH.d] = genotype
+        for j, role in enumerate(self.motors):
+            node = {"ingérer": EAT, "bouger": MOVE}.get(role)
+            if node is not None:
+                W[ARCH.n_in + node, ARCH.d + j] = 1
+        return W
+
+
+def read_motors(population, brain) -> np.ndarray:
+    """Valeur des moteurs ``(N, k)`` lue sur des cerveaux ``(N, 3)``."""
+    weights = population[:, ARCH.n_in : ARCH.d, ARCH.d :]
+    return (np.einsum("ni,nij->nj", brain, weights) > 0).astype(np.int64)
 
 
 @dataclass(frozen=True)
@@ -65,11 +123,12 @@ class Monde:
 class Vie:
     """Une population vivant dans un monde ; :meth:`step` avance d'un pas.
 
-    Attributs, un élément par agent vivant : ``population`` (génotypes ``(N, 4, 4)``),
-    ``brain`` ``(N, 3)``, ``sensor``, ``energy``, ``cell`` (indice ``ligne * largeur +
-    colonne``), ``ident`` (numéro unique) et ``lineage`` (numéro de l'ancêtre de départ).
-    ``fed`` et ``poisoned`` disent ce qui est arrivé à l'agent au dernier pas (faux pour
-    un nouveau-né). ``food`` et ``waste`` ont un élément par case.
+    Attributs, un élément par agent vivant : ``population`` (génotypes ``(N, d, d)``,
+    ``d = 4`` sans moteur), ``brain`` ``(N, 3)``, ``motor`` ``(N, k)``, ``sensor``,
+    ``energy``, ``cell`` (indice ``ligne * largeur + colonne``), ``ident`` (numéro
+    unique) et ``lineage`` (numéro de l'ancêtre de départ). ``sensor_prev`` est le capteur
+    du pas d'avant. ``fed`` et ``poisoned`` disent ce qui est arrivé à l'agent au dernier
+    pas (faux pour un nouveau-né). ``food`` et ``waste`` ont un élément par case.
     """
 
     def __init__(
@@ -79,11 +138,15 @@ class Vie:
         rng: np.random.Generator,
         mutation_rate: float = 0.1,
         bound: int = 3,
+        corps: Corps | None = None,
     ):
         self.monde, self.rng = monde, rng
         self.mutation_rate, self.bound = mutation_rate, bound
+        self.corps = corps or Corps()
         self.population = np.array(population, dtype=np.int64)
-        n = len(self.population)
+        n, d = len(self.population), self.corps.arch.d
+        if self.population.shape[1:] != (d, d):
+            raise ValueError(f"génotypes de forme {self.population.shape[1:]}, attendu {(d, d)}")
         self.brain = rng.integers(0, 2, size=(n, ARCH.n_brain))
         self.sensor = np.ones(n, dtype=np.int64)
         self.energy = np.full(n, monde.divide_at // 2, dtype=np.int64)
@@ -93,6 +156,11 @@ class Vie:
         self.next_ident = n
         self.fed = np.zeros(n, dtype=bool)
         self.poisoned = np.zeros(n, dtype=bool)
+        self.sensor_prev = np.ones(n, dtype=np.int64)
+        if self.corps.lagged:  # un nœud ordinaire part d'un état quelconque
+            self.motor = rng.integers(0, 2, size=(n, len(self.corps.motors)))
+        else:
+            self.motor = read_motors(self.population, self.brain)
         self.food = np.full(monde.cells, monde.food_cap, dtype=np.int64)
         self.waste = np.zeros(monde.cells, dtype=np.int64)
         self.t = 0
@@ -102,7 +170,8 @@ class Vie:
         return len(self.population)
 
     def _reset_counts(self) -> None:
-        # Les trois premiers sont ventilés selon la valeur du capteur (0 ou 1).
+        # Les trois premiers sont ventilés selon la valeur du capteur (0 ou 1) à laquelle
+        # l'action a pu réagir : celui du pas d'avant, ou d'il y a deux pas avec retard.
         self.counts = {key: np.zeros(2) for key in ("agents", "eat", "move")}
         self.counts |= dict.fromkeys(("served", "poisoned", "births", "deaths", "steps"), 0)
 
@@ -128,10 +197,28 @@ class Vie:
     def step(self) -> None:
         w, rng = self.monde, self.rng
         n = len(self)
-        eat = self.brain[:, EAT].astype(bool)
-        move = self.brain[:, MOVE].astype(bool)
-        for key, flags in (("agents", np.ones(n)), ("eat", eat), ("move", move)):
-            self.counts[key] += np.bincount(self.sensor, weights=flags, minlength=2)
+        # Actions du pas : ingérer, bouger au hasard, et poussées des moteurs de direction.
+        wander = np.zeros(n, dtype=bool)
+        pushes = []
+        if not self.corps.motors:
+            eat = self.brain[:, EAT].astype(bool)
+            wander = self.brain[:, MOVE].astype(bool)
+        else:
+            eat = np.zeros(n, dtype=bool)
+            for j, role in enumerate(self.corps.motors):
+                on = self.motor[:, j].astype(bool)
+                if role == "ingérer":
+                    eat = on
+                elif role == "bouger":
+                    wander = on
+                else:
+                    pushes.append((on, DIRECTIONS[role]))
+        moves = wander.astype(np.int64)  # nombre de moteurs de déplacement allumés
+        for on, _ in pushes:
+            moves += on
+        context = self.sensor_prev if self.corps.lagged else self.sensor
+        for key, flags in (("agents", np.ones(n)), ("eat", eat), ("move", moves > 0)):
+            self.counts[key] += np.bincount(context, weights=flags, minlength=2)
 
         # 1. Le milieu : arrivée de nourriture, disparition de déchet.
         if not w.neutral:
@@ -139,13 +226,17 @@ class Vie:
             self.food = np.minimum(self.food + arrivals, w.food_cap)
             self.waste = rng.binomial(self.waste, 1 - w.decay)
 
-        # 2. Déplacement vers une case voisine tirée au sort (tore).
-        movers = np.flatnonzero(move)
+        # 2. Déplacement sur le tore : une case voisine au hasard pour « bouger », plus la
+        #    somme des poussées des moteurs de direction.
+        delta = np.zeros((n, 2), dtype=np.int64)
+        movers = np.flatnonzero(wander)
         if len(movers):
-            delta = STEPS[rng.integers(0, len(STEPS), size=len(movers))]
-            row = (self.cell[movers] // w.width + delta[:, 0]) % w.height
-            col = (self.cell[movers] % w.width + delta[:, 1]) % w.width
-            self.cell[movers] = row * w.width + col
+            delta[movers] = STEPS[rng.integers(0, len(STEPS), size=len(movers))]
+        for on, vector in pushes:
+            delta[on] += vector
+        row = (self.cell // w.width + delta[:, 0]) % w.height
+        col = (self.cell % w.width + delta[:, 1]) % w.width
+        self.cell = row * w.width + col
 
         # 3. Ingestion : nourriture tirée au sort par case, poison selon le déchet présent.
         units = np.zeros(n, dtype=np.int64)
@@ -167,29 +258,33 @@ class Vie:
                 units[winners] = 1
                 np.subtract.at(self.food, self.cell[winners], 1)
                 np.add.at(self.waste, self.cell[winners], 1)
-            cost = w.upkeep + w.eat_cost * eat + w.move_cost * move + w.poison * poisoned
+            cost = w.upkeep + w.eat_cost * eat + w.move_cost * moves + w.poison * poisoned
         self.counts["served"] += int(units.sum())
         self.counts["poisoned"] += int(poisoned.sum())
 
-        # 4. Énergie, capteur, cerveau.
+        # 4. Énergie, capteur, puis cerveau et moteurs. Un moteur retardé lit le cerveau
+        #    d'avant la mise à jour, comme tout nœud d'un SBN synchrone.
         energy = self.energy + w.gain * units - cost
+        self.sensor_prev = self.sensor
         self.sensor = (energy > self.energy).astype(np.int64)
         self.energy = energy
         self.fed, self.poisoned = units > 0, poisoned
-        self.brain = step_brains(self.population, self.sensor, self.brain)
+        previous = self.brain
+        self.brain = step_brains(self.population, self.sensor, previous)
+        self.motor = read_motors(self.population, previous if self.corps.delay else self.brain)
 
         # 5. Morts, puis divisions sur la case du parent.
         alive = self.energy > 0
         self.counts["deaths"] += int(n - alive.sum())
         names = ("population", "brain", "sensor", "energy", "cell", "ident", "lineage")
-        for name in (*names, "fed", "poisoned"):
+        for name in (*names, "fed", "poisoned", "motor", "sensor_prev"):
             setattr(self, name, getattr(self, name)[alive])
         parents = np.flatnonzero(self.energy >= w.divide_at)
         if len(parents):
             share = self.energy[parents] // 2
             self.energy[parents] -= share
             children = self.population[parents].copy()
-            mask = ARCH.mask()
+            mask = self.corps.arch.mask()
             for k in np.flatnonzero(rng.random(len(parents)) < self.mutation_rate):
                 children[k] = mutate(children[k], rng, self.bound, mask)
             idents = self.next_ident + np.arange(len(parents))
@@ -200,7 +295,7 @@ class Vie:
             for name in ("fed", "poisoned"):
                 born = np.zeros(len(parents), dtype=bool)
                 setattr(self, name, np.concatenate([getattr(self, name), born]))
-            for name in ("brain", "sensor", "cell", "lineage"):
+            for name in ("brain", "sensor", "cell", "lineage", "motor", "sensor_prev"):
                 values = getattr(self, name)
                 setattr(self, name, np.concatenate([values, values[parents]]))
             self.counts["births"] += len(parents)

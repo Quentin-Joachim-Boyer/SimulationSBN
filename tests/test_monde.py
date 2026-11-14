@@ -42,8 +42,9 @@ def test_reactive_agent_stays_while_fed_and_leaves_when_unfed():
         vie.step()
         cells.append(int(vie.cell[0]))
         energies.append(int(vie.energy[0]))
-    # Trois repas sur place (+4 - 2), un échec (-2), puis départ vers une case voisine.
-    assert cells[:4] == [3, 3, 3, 3] and cells[4] in (2, 4)
+    # Trois repas sur place (+4 - 2), un échec (-2), puis départ (-3). Le monde n'a
+    # qu'une ligne : un pas vers le nord ou le sud laisse sur place.
+    assert cells[:4] == [3, 3, 3, 3] and cells[4] in (2, 3, 4)
     assert energies == [12, 14, 16, 14, 11]
     assert vie.food[3] == 0 and vie.waste[3] == 3  # une unité de déchet par unité ingérée
 
