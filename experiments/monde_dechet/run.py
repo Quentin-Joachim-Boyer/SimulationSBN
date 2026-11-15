@@ -28,7 +28,8 @@ ACTIVITY = [
 ]  # fmt: skip
 MEASURES = ["effectif", *ACTIVITY, "dechet", *KINDS]
 TESTED = ["dependance", "scission_sbn", "controle_cerveau", "psbn_cerveau", "controle_interne",
-          "deux_controles", "deux_controles_sbn"]  # fmt: skip
+          "deux_controles", "deux_controles_sbn", "pc1_po2", "pc2_po1",
+          "pc2_po1_vivante"]  # fmt: skip
 PANELS = [  # (mesure, titre, unité, indice du modèle nul uniforme ou None)
     ("effectif", "Effectif", "agents vivants", None),
     ("dependance", "Dépendance au contexte : P(bouger | 0) - P(bouger | 1)", "points de %", None),

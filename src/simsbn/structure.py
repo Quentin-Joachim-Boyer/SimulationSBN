@@ -10,12 +10,18 @@ Six mesures par agent, dans l'ordre de ``KINDS`` :
 - ``deux_controles`` : le cerveau seul a exactement deux nœuds de contrôle, le troisième
   étant le nœud opératif ;
 - ``deux_controles_sbn`` : de plus, sur chacune des quatre faces, la fonction du nœud
-  opératif est une SBF.
+  opératif est une SBF ;
+- ``pc1_po2`` : un nœud ne lit aucun des deux autres (partie contrôle de 1 nœud) ;
+- ``pc2_po1`` : deux nœuds ne lisent pas le troisième (partie contrôle de 2 nœuds) ;
+- ``pc2_po1_vivante`` : idem, avec une partie contrôle qui n'est pas toujours éteinte.
+
+« Lire » est pris sur la dynamique : j lit i si changer i change parfois la valeur
+suivante de j. Les arcs partie contrôle → partie opérative sont libres.
 """
 
 from __future__ import annotations
 
-from itertools import product
+from itertools import combinations, product
 
 import numpy as np
 
@@ -31,8 +37,19 @@ KINDS = [
     "controle_interne",
     "deux_controles",
     "deux_controles_sbn",
+    "pc1_po2",
+    "pc2_po1",
+    "pc2_po1_vivante",
 ]
-BRAIN_KINDS = ["controle_cerveau", "psbn_cerveau", "deux_controles", "deux_controles_sbn"]
+BRAIN_KINDS = [
+    "controle_cerveau",
+    "psbn_cerveau",
+    "deux_controles",
+    "deux_controles_sbn",
+    "pc1_po2",
+    "pc2_po1",
+    "pc2_po1_vivante",
+]
 SENSOR = ARCH.inputs[0]
 
 
@@ -48,7 +65,7 @@ class Classifier:
         for f in map(tuple, batch_dynamics(population).tolist()):
             if f not in self.kinds:
                 brain = tuple(restrict(f[j], ARCH.d, SENSOR, 0) for j in ARCH.brain)
-                control, psbn, two, two_sbn = brain_kinds(brain)
+                control, psbn, two, two_sbn, pc1, pc2, pc2_living = brain_kinds(brain)
                 self.kinds[f] = (
                     control,
                     psbn,
@@ -56,6 +73,9 @@ class Classifier:
                     sum(decomposition(f, "tbn")) > 2,
                     two,
                     two_sbn,
+                    pc1,
+                    pc2,
+                    pc2_living,
                 )
             out.append(self.kinds[f])
         return np.array(out, dtype=bool).reshape(len(out), len(KINDS))
@@ -65,14 +85,36 @@ class Classifier:
         return self.flags(population).mean(axis=0)
 
 
-def brain_kinds(brain) -> tuple[bool, bool, bool, bool]:
-    """Classes de pluripotence d'un cerveau seul, dans l'ordre de ``BRAIN_KINDS``."""
+def reads(table: int, i: int, d: int) -> bool:
+    """Vrai si la fonction de table ``table`` (dimension ``d``) dépend du nœud ``i``."""
+    return any(((table >> s) & 1) != ((table >> (s ^ (1 << i))) & 1) for s in range(1 << d))
+
+
+def control_parts(f) -> list[tuple[int, ...]]:
+    """Parties contrôle possibles d'une dynamique : ensembles non vides et stricts de
+    nœuds dont aucun ne lit un nœud extérieur."""
+    d = len(f)
+    lit = [[reads(f[j], i, d) for i in range(d)] for j in range(d)]
+    return [
+        pc
+        for size in range(1, d)
+        for pc in combinations(range(d), size)
+        if not any(lit[j][i] for j in pc for i in range(d) if i not in pc)
+    ]
+
+
+def brain_kinds(brain) -> tuple[bool, ...]:
+    """Classes d'un cerveau seul de 3 nœuds, dans l'ordre de ``BRAIN_KINDS``."""
     control = control_nodes(brain)
     two = len(control) == 2
     # Sens SBN : la décomposition en SBN descend jusqu'au nœud opératif sur chaque face,
     # donc ne laisse aucune feuille de dimension supérieure à 1.
     two_sbn = two and not any(decomposition(brain, "sbn")[: len(brain) - 1])
-    return bool(control), is_psbn(brain), two, two_sbn
+    parts = control_parts(brain)
+    pc1 = any(len(pc) == 1 for pc in parts)
+    pairs = [pc for pc in parts if len(pc) == 2]
+    pc2_living = any(any(brain[j] for j in pc) for pc in pairs)
+    return bool(control), is_psbn(brain), two, two_sbn, pc1, bool(pairs), pc2_living
 
 
 def exact_brain_kinds(bound: int, d: int = 3) -> dict[str, float]:
