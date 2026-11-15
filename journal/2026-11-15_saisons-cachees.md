@@ -65,7 +65,10 @@ Rien d'autre n'est réglé.
 
 ## Contrôle démographique
 
-À remplir.
+Une population de génotypes uniformes, 2 000 pas : aucune extinction. Sur les six
+dernières années, 142 à 179 agents en fin d'été et 119 à 157 en fin d'hiver. L'hiver ne
+retire donc que 10 à 15 % de la population, moins que je ne pensais : il reste sans doute
+de la nourriture sur les cases. Paramètres laissés tels quels, comme prévu.
 
 ## Résultat
 

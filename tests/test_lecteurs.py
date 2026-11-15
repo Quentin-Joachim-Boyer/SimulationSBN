@@ -24,7 +24,9 @@ def test_one_hot_immediate_readers_reproduce_direct_reading_exactly():
         for name in ("cell", "energy", "ident", "brain", "sensor"):
             assert np.array_equal(getattr(direct, name), getattr(readers, name))
     assert len(direct) > 0 and np.array_equal(direct.waste, readers.waste)
-    assert direct.stats() == readers.stats()
+    a, b = direct.stats(), readers.stats()
+    assert a.keys() == b.keys()
+    assert all(a[k] == b[k] or (np.isnan(a[k]) and np.isnan(b[k])) for k in a)
 
 
 def test_brain_and_delayed_motors_are_one_synchronous_sbn():

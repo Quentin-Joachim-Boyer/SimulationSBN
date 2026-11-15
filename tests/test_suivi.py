@@ -14,7 +14,9 @@ def test_suivre_records_every_measure_and_stops_at_extinction():
     series = suivre(vie, 400, 100, Classifier(), monde.cells)
     assert series.shape == (len(MEASURES), 5)
     assert series[0, 0] == 120 and series[0, -1] == len(vie) > 0
-    assert not np.isnan(series[:, 1:]).any()
+    winter = [MEASURES.index(m) for m in ("manger_hiver", "bouger_hiver", "economie_hiver")]
+    assert np.isnan(series[winter, 1:]).all()  # monde sans saisons
+    assert not np.isnan(np.delete(series, winter, axis=0)[:, 1:]).any()
     assert brains(vie.population).shape[1:] == (ARCH.d, ARCH.d)
 
     doomed = Vie(np.zeros((5, 4, 4), dtype=np.int64), monde, np.random.default_rng(2))

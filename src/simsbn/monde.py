@@ -108,10 +108,20 @@ class Monde:
     poison: int = 4
     divide_at: int = 20
     neutral: bool = False
+    summer: int | None = None  # durée d'un été en pas ; None : pas de saisons
+    winter: int = 0  # durée d'un hiver ; la nourriture n'arrive qu'en été
 
     @property
     def cells(self) -> int:
         return self.height * self.width
+
+    def is_summer(self, t: int) -> bool:
+        """Vrai si la nourriture arrive au pas ``t``. L'année commence par l'été.
+
+        Les agents ne perçoivent pas la saison. En régime neutre, l'hiver ne coûte que
+        l'entretien, comme à un agent en veille.
+        """
+        return self.summer is None or t % (self.summer + self.winter) < self.summer
 
     def melange(self) -> Monde:
         """Le même monde réduit à une seule case, à totaux égaux."""
@@ -172,7 +182,9 @@ class Vie:
     def _reset_counts(self) -> None:
         # Les trois premiers sont ventilés selon la valeur du capteur (0 ou 1) à laquelle
         # l'action a pu réagir : celui du pas d'avant, ou d'il y a deux pas avec retard.
-        self.counts = {key: np.zeros(2) for key in ("agents", "eat", "move")}
+        # Les trois suivants selon la saison (0 : hiver, 1 : été).
+        names = ("agents", "eat", "move", "agents_season", "eat_season", "move_season")
+        self.counts = {key: np.zeros(2) for key in names}
         self.counts |= dict.fromkeys(("served", "poisoned", "births", "deaths", "steps"), 0)
 
     def stats(self) -> dict[str, float]:
@@ -190,6 +202,14 @@ class Vie:
                 "servies": c["served"] / c["eat"].sum() if c["eat"].sum() else np.nan,
                 "empoisonnees": c["poisoned"] / c["eat"].sum() if c["eat"].sum() else np.nan,
                 "naissances": c["births"] / max(c["steps"], 1),
+            }
+            eat, move = c["eat_season"] / c["agents_season"], c["move_season"] / c["agents_season"]
+            out |= {
+                "manger_hiver": eat[0],
+                "manger_ete": eat[1],
+                "bouger_hiver": move[0],
+                "bouger_ete": move[1],
+                "economie_hiver": eat[1] - eat[0],
             }
         self._reset_counts()
         return {key: float(value) for key, value in out.items()}
@@ -219,10 +239,12 @@ class Vie:
         context = self.sensor_prev if self.corps.lagged else self.sensor
         for key, flags in (("agents", np.ones(n)), ("eat", eat), ("move", moves > 0)):
             self.counts[key] += np.bincount(context, weights=flags, minlength=2)
+            self.counts[key + "_season"][int(w.is_summer(self.t))] += flags.sum()
+        summer = w.is_summer(self.t)
 
         # 1. Le milieu : arrivée de nourriture, disparition de déchet.
         if not w.neutral:
-            arrivals = rng.poisson(w.inflow / w.cells, size=w.cells)
+            arrivals = rng.poisson(w.inflow / w.cells if summer else 0.0, size=w.cells)
             self.food = np.minimum(self.food + arrivals, w.food_cap)
             self.waste = rng.binomial(self.waste, 1 - w.decay)
 
@@ -242,8 +264,8 @@ class Vie:
         units = np.zeros(n, dtype=np.int64)
         poisoned = np.zeros(n, dtype=bool)
         if w.neutral:
-            units[rng.permutation(n)[: rng.poisson(w.inflow)]] = 1
-            cost = np.full(n, w.upkeep + w.eat_cost)
+            units[rng.permutation(n)[: rng.poisson(w.inflow if summer else 0.0)]] = 1
+            cost = np.full(n, w.upkeep + (w.eat_cost if summer else 0))
         else:
             askers = np.flatnonzero(eat)
             if len(askers):
