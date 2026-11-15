@@ -213,10 +213,12 @@ const DATA = /*DONNEES*/null;
   const BIT = { SENSOR: 1, EAT: 2, MOVE: 4, HIDDEN: 8, BORN: 16, FED: 32, POISONED: 64 };
   const ROWS = [["SENSOR", "well"], ["EAT", "ink"], ["MOVE", "ink"], ["HIDDEN", "muted"], ["FED", "food"], ["POISONED", "waste"]];
   const KIND_LABELS = {
-    controle_cerveau: "Nœud de contrôle (cerveau seul)",
+    controle_cerveau: "PTBN : nœud de contrôle (cerveau seul)",
     psbn_cerveau: "PSBN (cerveau seul)",
     scission_sbn: "Face « capteur = 1 » SBN",
     controle_interne: "Contrôle interne",
+    deux_controles: "2 nœuds de contrôle, 1 opératif",
+    deux_controles_sbn: "2 contrôle, 1 opératif (sens SBN)",
   };
   const $ = (id) => document.getElementById(id);
   const W = DATA.width, H = DATA.height, CELLS = W * H;

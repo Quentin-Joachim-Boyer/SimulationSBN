@@ -64,4 +64,69 @@ PTBN et PSBN ne changent pas : ce sont les lignes déjà publiées.
 
 ## Résultat
 
-À remplir.
+Les deux scripts relancés redonnent à l'identique toutes les lignes déjà publiées
+(effectifs, comportement, quatre mesures de structure et leurs valeurs p contre le
+régime neutre). Seules les valeurs p des sections placées après les nouveaux tests
+bougent à la troisième décimale, parce que le tirage des permutations est décalé.
+
+Parts en %, seconde moitié, moyenne ± écart-type entre 24 populations.
+
+| Lecture directe          | Mélangé       | Espace        | Neutre        | Loi uniforme |
+|--------------------------|---------------|---------------|---------------|--------------|
+| PTBN (cerveau seul)      | 17,60 ± 8,23  | 8,99 ± 9,93   | 9,45 ± 8,46   | 8,494        |
+| PSBN (cerveau seul)      | 7,83 ± 4,76   | 1,03 ± 3,23   | 3,05 ± 3,19   | 2,491        |
+| 2 contrôle / 1 opératif  | 0,82 ± 1,26   | 0,29 ± 1,02   | 0,38 ± 0,64   | 0,248        |
+| idem, sens SBN           | 0,28 ± 0,50   | 0,00 ± 0,00   | 0,11 ± 0,28   | 0,076        |
+
+| Moteurs lecteurs         | Mélangé retardé | Mélangé immédiat | Espace retardé | Espace immédiat | Neutre      |
+|--------------------------|-----------------|------------------|----------------|-----------------|-------------|
+| PTBN (cerveau seul)      | 14,92 ± 10,15   | 18,00 ± 15,20    | 8,66 ± 12,62   | 12,98 ± 16,29   | 7,88 ± 7,73 |
+| PSBN (cerveau seul)      | 4,34 ± 5,15     | 4,47 ± 4,60      | 1,43 ± 2,98    | 4,41 ± 6,02     | 2,81 ± 3,96 |
+| 2 contrôle / 1 opératif  | 0,75 ± 2,49     | 0,34 ± 0,53      | 0,31 ± 1,29    | 0,05 ± 0,11     | 0,13 ± 0,24 |
+| idem, sens SBN           | 0,19 ± 0,53     | 0,16 ± 0,46      | 0,26 ± 1,27    | 0,01 ± 0,02     | 0,00 ± 0,01 |
+
+Valeurs p contre le régime neutre de la même expérience :
+
+|                          | Mélangé direct | Espace direct | Mélangé retardé | Mélangé immédiat | Espace retardé | Espace immédiat |
+|--------------------------|----------------|---------------|-----------------|------------------|----------------|-----------------|
+| 2 contrôle / 1 opératif  | 0,15           | 0,78          | 0,14            | 0,073            | 0,91           | 0,19            |
+| idem, sens SBN           | 0,17           | 0,0008        | 0,0044          | 0,019            | 0,93           | 0,55            |
+
+- **Hypothèse 1 : réfutée.** En régime mélangé à lecture directe, la classe « 2 contrôle /
+  1 opératif » est à 0,82 % contre 0,38 % en neutre : le sens attendu, mais p = 0,15.
+- **Hypothèse 2 : confirmée.** Aucun régime espace n'enrichit cette classe (p ≥ 0,19).
+- **Sens SBN, régime espace à lecture directe** : la classe est absente des 24 populations
+  (maximum 0,01 %), nettement sous le régime neutre (p = 0,0008). Explication probable :
+  le nœud d'ingestion, qui reste allumé, y active le déplacement (poids ingérer → bouger
+  positif chez 91,6 % des agents finaux, contre 46,4 % en neutre et 7,7 % en mélangé). Or
+  un nœud de contrôle qui active un autre nœud interdit la décomposition en SBN : c'est
+  la même contrainte que pour la scission. Le PSBN du cerveau seul y baisse aussi (1,03 %).
+- **Sens SBN, régime mélangé retardé** : 0,19 % contre 0,00 % en neutre, p = 0,0044. Je ne
+  m'y fie pas : deux populations sur 24 portent l'écart, et ce régime neutre est tombé à
+  0,00 % alors que la loi exacte donne 0,076 % et que l'autre régime neutre donne 0,11 %.
+
+**Ce que valent ces mesures.**
+
+- PTBN et PSBN du cerveau seul restent les deux mesures utilisables. PTBN n'ajoute rien à
+  « au moins un nœud de contrôle » : c'est la même chose.
+- La classe « 2 contrôle / 1 opératif » est trop rare en dimension 3 pour ces populations.
+  Sous la loi uniforme on en attend moins d'un agent par population (0,25 % de 170 à 400
+  agents). Les parts observées sont presque toujours nulles, avec de rares bouffées quand
+  une lignée qui la porte se répand (jusqu'à 12,5 % dans une population). Vingt-quatre
+  populations ne suffisent pas à distinguer un doublement.
+- Avec trois nœuds, deux nœuds figés ne laissent qu'un nœud pour calculer. La classe
+  aurait plus de sens avec un cerveau plus grand.
+
+### Limites
+
+- Une graine ; les mêmes populations que les deux expériences précédentes.
+- Douze tests de plus, sans correction ; le seuil de 0,01 valait pour les hypothèses 1 et 2.
+- Nœuds de contrôle de l'hypercube entier, sur le cerveau à capteur éteint seulement.
+
+## Suites possibles
+
+- Un cerveau de 4 ou 5 nœuds, où « 2 contrôle / n opératifs » laisse de quoi calculer.
+- Les mêmes classes sur le cerveau à capteur allumé (un réseau à seuil), pour voir si le
+  contexte change la classe du cerveau.
+- Davantage de populations, ou une mesure cumulée sur toute la durée, si la classe rare
+  reste d'intérêt en dimension 3.

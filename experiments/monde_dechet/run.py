@@ -18,7 +18,7 @@ from commun import BOUND, ESPACE, REGIMES, naissance
 
 from simsbn.milieu import ARCH
 from simsbn.stats import format_p, permutation_test
-from simsbn.structure import KINDS, Classifier, exact_brain_law
+from simsbn.structure import KINDS, Classifier, exact_brain_kinds
 from simsbn.viz import BLUE, INK, MUTED, ORANGE, apply_style
 
 COLORS = {"mélangé": BLUE, "espace": ORANGE, "neutre": MUTED}
@@ -27,7 +27,8 @@ ACTIVITY = [
     "servies", "empoisonnees",
 ]  # fmt: skip
 MEASURES = ["effectif", *ACTIVITY, "dechet", *KINDS]
-TESTED = ["dependance", "scission_sbn", "controle_cerveau", "psbn_cerveau", "controle_interne"]
+TESTED = ["dependance", "scission_sbn", "controle_cerveau", "psbn_cerveau", "controle_interne",
+          "deux_controles", "deux_controles_sbn"]  # fmt: skip
 PANELS = [  # (mesure, titre, unité, indice du modèle nul uniforme ou None)
     ("effectif", "Effectif", "agents vivants", None),
     ("dependance", "Dépendance au contexte : P(bouger | 0) - P(bouger | 1)", "points de %", None),
@@ -128,7 +129,8 @@ def main():
     out = Path(__file__).parent / "out"
     out.mkdir(exist_ok=True)
     null = _classify(ARCH.random(np.random.default_rng([args.seed, 999]), args.null, BOUND))
-    null[:2] = exact_brain_law(BOUND)
+    for kind, share in exact_brain_kinds(BOUND).items():
+        null[KINDS.index(kind)] = share
 
     tasks = [
         (regime, r, args.pop, args.steps, args.mu, args.every, args.seed)
@@ -166,7 +168,7 @@ def main():
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore", RuntimeWarning)
                 cells.append(f"{np.nanmean(v):12.2f} ± {np.nanstd(v):<5.2f}")
-        uniform = f"{100 * null[KINDS.index(name)]:14.2f}" if name in KINDS else ""
+        uniform = f"{100 * null[KINDS.index(name)]:14.3f}" if name in KINDS else ""
         print(f"{name:18}" + "".join(cells) + uniform)
     for regime in REGIMES:
         extinct = sum(len(p) == 0 for p in finals[regime])

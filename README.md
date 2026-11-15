@@ -32,7 +32,7 @@ Le paquet `simsbn` (dans `src/`), implémentation de référence en NumPy :
 | `milieu` | milieu partagé à deux ressources : énergie, mort, division, viabilité en solitaire |
 | `monde` | monde en grille (2D, ou 1 × 1 pour un milieu bien mélangé) : nourriture, déchet toxique, déplacement, capteur de bien-être ; actions lues sur le cerveau ou par des moteurs lecteurs (`Corps`) |
 | `suivi` | relevés d'une population qui vit dans un monde : démographie, comportement, structure |
-| `structure` | mesures de structure d'un agent à un capteur, loi uniforme exacte du cerveau seul |
+| `structure` | mesures de structure d'un agent à un capteur (PTBN, PSBN, scission, contrôle interne, deux nœuds de contrôle), loi uniforme exacte du cerveau seul |
 | `stats` | test par permutation, une population étant l'unité |
 | `tasks` | contextes, trajectoires et score d'un agent |
 | `viz` | style commun des figures |
