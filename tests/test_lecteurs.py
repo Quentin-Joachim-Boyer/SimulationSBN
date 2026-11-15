@@ -160,3 +160,30 @@ def test_one_tick_is_the_unchanged_default_and_ticks_must_be_positive():
     assert Corps(PAIR).ticks == 1
     with pytest.raises(ValueError):
         Corps(PAIR, ticks=0)
+
+
+def _walker(motors, weights):
+    """Un agent dont le nœud 1 du cerveau reste allumé et dont les moteurs lisent ce nœud."""
+    corps = Corps(motors)
+    W = np.zeros((1, corps.arch.d, corps.arch.d), dtype=np.int64)
+    W[0, 1, 1] = 1  # nœud 1 du cerveau : s'entretient
+    for motor, weight in weights.items():
+        W[0, 1, 4 + motors.index(motor)] = weight
+    vie = Vie(W, Monde(height=1, width=64, inflow=0.0, tox=np.inf), np.random.default_rng(0),
+              mutation_rate=0.0, corps=corps)  # fmt: skip
+    vie.brain[:] = [[1, 0, 0]]
+    vie.energy[:] = 1_000
+    return vie
+
+
+def test_persistence_is_one_for_a_constant_direction_and_empty_when_moves_cancel():
+    motors = ("ingérer", "nord", "sud", "est", "ouest")
+    vie = _walker(motors, {"est": 1})
+    for _ in range(30):
+        vie.step()
+    assert vie.stats()["persistance"] == pytest.approx(1.0)
+    # est et ouest s'annulent : l'agent ne se déplace pas, et il n'y a rien à compter
+    vie = _walker(motors, {"est": 1, "ouest": 1})
+    for _ in range(30):
+        vie.step()
+    assert np.isnan(vie.stats()["persistance"])

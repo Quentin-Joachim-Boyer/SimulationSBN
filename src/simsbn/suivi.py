@@ -13,7 +13,7 @@ from simsbn.structure import KINDS, Classifier
 ACTIVITY = [
     "naissances", "manger_0", "manger_1", "bouger_0", "bouger_1", "dependance", "capteur",
     "servies", "empoisonnees", "manger_hiver", "manger_ete", "bouger_hiver", "bouger_ete",
-    "economie_hiver",
+    "economie_hiver", "persistance",
 ]  # fmt: skip
 MEASURES = ["effectif", *ACTIVITY, "dechet", *KINDS]
 

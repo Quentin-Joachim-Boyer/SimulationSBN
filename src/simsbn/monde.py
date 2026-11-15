@@ -175,6 +175,7 @@ class Vie:
         self.fed = np.zeros(n, dtype=bool)
         self.poisoned = np.zeros(n, dtype=bool)
         self.sensor_prev = np.ones(n, dtype=np.int64)
+        self.last_delta = np.zeros((n, 2), dtype=np.int64)  # dernier déplacement de chaque agent
         if self.corps.lagged:  # un nœud ordinaire part d'un état quelconque
             self.motor = rng.integers(0, 2, size=(n, len(self.corps.motors)))
         else:
@@ -193,7 +194,9 @@ class Vie:
         # Les trois suivants selon la saison (0 : hiver, 1 : été).
         names = ("agents", "eat", "move", "agents_season", "eat_season", "move_season")
         self.counts = {key: np.zeros(2) for key in names}
-        self.counts |= dict.fromkeys(("served", "poisoned", "births", "deaths", "steps"), 0)
+        self.counts |= dict.fromkeys(
+            ("served", "poisoned", "births", "deaths", "steps", "persist_sum", "persist_n"), 0
+        )
 
     def stats(self) -> dict[str, float]:
         """Activité depuis le dernier appel, puis remise à zéro des compteurs."""
@@ -210,6 +213,7 @@ class Vie:
                 "servies": c["served"] / c["eat"].sum() if c["eat"].sum() else np.nan,
                 "empoisonnees": c["poisoned"] / c["eat"].sum() if c["eat"].sum() else np.nan,
                 "naissances": c["births"] / max(c["steps"], 1),
+                "persistance": c["persist_sum"] / c["persist_n"] if c["persist_n"] else np.nan,
             }
             eat, move = c["eat_season"] / c["agents_season"], c["move_season"] / c["agents_season"]
             out |= {
@@ -267,6 +271,15 @@ class Vie:
             delta[movers] = STEPS[rng.integers(0, len(STEPS), size=len(movers))]
         for on, vector in pushes:
             delta[on] += vector
+        # Persistance : cosinus entre deux déplacements successifs d'un même agent, compté
+        # quand il se déplace aux deux pas. Une marche au hasard donne 0 en moyenne.
+        both = (delta != 0).any(axis=1) & (self.last_delta != 0).any(axis=1)
+        if both.any():
+            a, b = delta[both].astype(float), self.last_delta[both].astype(float)
+            cos = (a * b).sum(axis=1) / (np.linalg.norm(a, axis=1) * np.linalg.norm(b, axis=1))
+            self.counts["persist_sum"] += float(cos.sum())
+            self.counts["persist_n"] += int(both.sum())
+        self.last_delta = delta
         row = (self.cell // w.width + delta[:, 0]) % w.height
         col = (self.cell % w.width + delta[:, 1]) % w.width
         self.cell = row * w.width + col
@@ -311,7 +324,7 @@ class Vie:
         alive = self.energy > 0
         self.counts["deaths"] += int(n - alive.sum())
         names = ("population", "brain", "sensor", "energy", "cell", "ident", "lineage")
-        for name in (*names, "fed", "poisoned", "motor", "sensor_prev"):
+        for name in (*names, "fed", "poisoned", "motor", "sensor_prev", "last_delta"):
             setattr(self, name, getattr(self, name)[alive])
         parents = np.flatnonzero(self.energy >= w.divide_at)
         if len(parents):
@@ -332,6 +345,7 @@ class Vie:
             for name in ("brain", "sensor", "cell", "lineage", "motor", "sensor_prev"):
                 values = getattr(self, name)
                 setattr(self, name, np.concatenate([values, values[parents]]))
+            self.last_delta = np.concatenate([self.last_delta, np.zeros((len(parents), 2), int)])
             self.counts["births"] += len(parents)
         self.counts["steps"] += 1
         self.t += 1
