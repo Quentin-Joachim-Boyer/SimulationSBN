@@ -105,6 +105,15 @@ input[type="range"] { flex: 1 1 90px; min-width: 90px; accent-color: var(--ink);
 .strip ol { list-style: none; margin: 0; padding: 0; display: grid; grid-auto-rows: 15px; font-size: 11.5px; line-height: 15px; color: var(--muted); }
 .strip canvas { width: 100%; height: 90px; display: block; cursor: pointer; }
 table.brain { border-collapse: collapse; font: 400 13px/1 var(--mono); font-variant-numeric: tabular-nums; }
+.cubes { display: grid; grid-template-columns: 1fr; gap: 10px; max-width: 320px; }
+.cubes figure { margin: 0; }
+.cubes figcaption { font: 500 11.5px/1.3 var(--body); color: var(--muted); text-align: center; }
+.cubes svg { width: 100%; height: auto; display: block; }
+.cubes .skel { stroke: var(--line); stroke-width: 1; }
+.cubes .node { fill: var(--surface); stroke-width: 1.5; }
+.cubes text { font: 500 9.5px/1 var(--mono, ui-monospace, monospace); fill: var(--ink); text-anchor: middle; }
+.cubes text.act { font-size: 8px; fill: var(--muted); }
+.cubes .on text { fill: var(--surface); }
 table.brain th { font: 500 11.5px/1.2 var(--body); color: var(--muted); padding: 5px 8px; text-align: center; }
 table.brain th[scope="row"] { text-align: right; padding-left: 0; }
 table.brain td { padding: 3px; }
@@ -192,6 +201,9 @@ table.brain td span.neg { border-color: var(--ink); color: var(--ink); border-st
         <h3>Son cerveau : poids de la ligne vers la colonne</h3>
         <table class="brain" id="brain"></table>
         <p class="note" id="motif"></p>
+        <h3>Son graphe de transition</h3>
+        <div class="cubes" id="cubes"></div>
+        <p class="note" id="cubes-note"></p>
         <ul class="flags" id="flags"></ul>
       </section>
     </aside>
@@ -520,6 +532,7 @@ const DATA = {"regime":"saisons-directions","mu":0.5,"height":32,"width":32,"foo
     const m = raw.motifs && raw.motifs[g], word = (s) => (s === "variable" ? "selon l'état de départ" : s);
     if (!m) $("motif").textContent = "Les cinq moteurs lisent les trois nœuds du cerveau, jamais le capteur : un moteur s'allume si la somme pondérée de ce qu'il lit est strictement positive.";
     else $("motif").innerHTML = `Nœud « bouger », ingestion allumée : <b>${word(m[0])}</b> quand le capteur vaut 0, <b>${word(m[1])}</b> quand il vaut 1.`;
+    renderCubes(weights);
     $("flags").innerHTML = DATA.kinds.map((kind, i) => `<li><span>${KIND_LABELS[kind] || kind}</span><b>${raw.flags[g][i] ? "oui" : "non"}</b></li>`).join("");
     drawStrip();
   }
@@ -581,6 +594,68 @@ const DATA = {"regime":"saisons-directions","mu":0.5,"height":32,"width":32,"foo
       render(false);
     }
     requestAnimationFrame(tick);
+  }
+
+
+  // Graphe de transition du cerveau, à la manière du stage : les huit états sur un cube
+  // projeté, une flèche par état, une couleur par attracteur, attracteurs en plein.
+  const CUBE_COLORS = ["--well", "--waste", "--unwell", "--food"];
+  const MOTOR_LETTERS = { "ingérer": "I", "bouger": "B", nord: "N", sud: "S", est: "E", ouest: "O" };
+  function renderCubes(weights) {
+    const n = DATA.brain, nc = DATA.ncols || n, w = (i, j) => weights[i * nc + j];
+    const bit = (x, i) => (x >> i) & 1;
+    const next = (sensor, x) => {
+      let y = 0;
+      for (let j = 0; j < n; j++) {
+        let sum = sensor * w(0, j);
+        for (let i = 0; i < n; i++) sum += bit(x, i) * w(i + 1, j);
+        if (sum > 0) y |= 1 << j;
+      }
+      return y;
+    };
+    const lit = (x) => {
+      let out = "";
+      for (let j = n; j < nc; j++) {
+        let sum = 0;
+        for (let i = 0; i < n; i++) sum += bit(x, i) * w(i + 1, j);
+        if (sum > 0) out += MOTOR_LETTERS[DATA.nodes[j + 1]] || "?";
+      }
+      return out || "–";
+    };
+    const pos = (x) => [26 + 92 * bit(x, 0) + 46 * bit(x, 2), 124 - 80 * bit(x, 1) - 30 * bit(x, 2)];
+    const css = getComputedStyle(document.documentElement);
+    const figure = (sensor) => {
+      const T = Array.from({ length: 8 }, (_, x) => next(sensor, x));
+      const basin = T.map((_, x) => { let y = x; for (let k = 0; k < 8; k++) y = T[y]; let m = y, z = T[y]; while (z !== y) { m = Math.min(m, z); z = T[z]; } return m; });
+      const onCycle = T.map((_, x) => { let y = T[x]; for (let k = 0; k < 8; k++) { if (y === x) return true; y = T[y]; } return false; });
+      const ids = [...new Set(basin)].sort((a, b) => a - b);
+      const color = (x) => css.getPropertyValue(CUBE_COLORS[ids.indexOf(basin[x]) % CUBE_COLORS.length]).trim();
+      let out = `<svg viewBox="0 0 192 150" role="img" aria-label="Transitions du cerveau, capteur à ${sensor}">`;
+      for (let x = 0; x < 8; x++) for (let i = 0; i < 3; i++) if (!bit(x, i)) {
+        const [x1, y1] = pos(x), [x2, y2] = pos(x | (1 << i));
+        out += `<line class="skel" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"/>`;
+      }
+      for (let x = 0; x < 8; x++) {
+        const [x1, y1] = pos(x), c = color(x);
+        if (T[x] === x) { out += `<circle cx="${x1 - 11}" cy="${y1 + 9}" r="6" fill="none" stroke="${c}" stroke-width="1.6"/>`; continue; }
+        const [x2, y2] = pos(T[x]), dx = x2 - x1, dy = y2 - y1, len = Math.hypot(dx, dy), ux = dx / len, uy = dy / len;
+        const sx = x1 + 10 * ux, sy = y1 + 10 * uy, ex = x2 - 12 * ux, ey = y2 - 12 * uy;
+        const mx = (sx + ex) / 2 - 0.16 * len * uy, my = (sy + ey) / 2 + 0.16 * len * ux;
+        const ax = ex - mx, ay = ey - my, al = Math.hypot(ax, ay), vx = ax / al, vy = ay / al;
+        out += `<path d="M${sx} ${sy} Q${mx} ${my} ${ex} ${ey}" fill="none" stroke="${c}" stroke-width="1.8"/>`;
+        out += `<path d="M${ex + 3 * vx} ${ey + 3 * vy} L${ex - 5 * vx - 3.5 * vy} ${ey - 5 * vy + 3.5 * vx} L${ex - 5 * vx + 3.5 * vy} ${ey - 5 * vy - 3.5 * vx} Z" fill="${c}"/>`;
+      }
+      for (let x = 0; x < 8; x++) {
+        const [cx, cy] = pos(x), c = color(x), label = [0, 1, 2].map((i) => bit(x, i)).join("");
+        out += `<g class="${onCycle[x] ? "on" : ""}"><circle class="node" cx="${cx}" cy="${cy}" r="10" stroke="${c}" ${onCycle[x] ? `style="fill:${c}"` : ""}/><text x="${cx}" y="${cy + 3.3}">${label}</text></g>`;
+        if (nc > n) out += `<text class="act" x="${cx}" y="${cy + 19}">${lit(x)}</text>`;
+      }
+      return `<figure>${out}</svg><figcaption>capteur à ${sensor}</figcaption></figure>`;
+    };
+    $("cubes").innerHTML = figure(0) + figure(1);
+    $("cubes-note").textContent = "Chaque état se lit c1 c2 c3. Une flèche par pas d'agent, une couleur par attracteur ; les états pleins sont ceux d'un attracteur (point fixe ou cycle)."
+      + (nc > n ? " Sous chaque état, les moteurs qu'il allume au pas d'agent suivant : I ingérer, N nord, S sud, E est, O ouest, B bouger." : "")
+      + (DATA.ncols > 3 && DATA.regime !== "moteurs" ? " Deux pas d'agent par pas du milieu." : "");
   }
 
   function start(saved) {
