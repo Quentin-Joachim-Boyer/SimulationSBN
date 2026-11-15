@@ -82,6 +82,56 @@ Paramètres laissés tels quels.
 Une exécution. Si plus de la moitié des populations d'un régime s'éteignent, je rapporte
 sans relancer.
 
+## Résultat
+
+`python experiments/directions/run.py`, graine 0, 24 populations par régime, 20 000 pas,
+moyennes de la seconde moitié ± écart-type entre populations. Aucune extinction.
+
+|                            | Directions    | Neutre        | Repère 2 moteurs (k = 2) |
+|----------------------------|---------------|---------------|--------------------------|
+| Effectif                   | 173           | 400           | 161                      |
+| **Persistance**            | 0,68 ± 0,19   | 0,91 ± 0,06   |                          |
+| Dépendance au capteur      | +18,3 ± 25,4  | -17,6 ± 17,4  | +45,4                    |
+| P(bouger), capteur 0 / 1   | 98,8 / 80,5 % | 58,6 / 76,2 % |                          |
+| 1/2 sur les poids          | 4,3 ± 12,2 %  | 3,1 ± 4,2 %   | 4,0 %                    |
+| 2/1 sur les poids          | 1,7 ± 2,9 %   | 5,1 ± 8,0 %   | 4,1 %                    |
+| PTBN (cerveau seul)        | 6,3 ± 16,6 %  | 10,0 ± 11,0 % | 13,9 %                   |
+
+- **Hypothèse 1 : réfutée.** La persistance du régime directions (0,68) est **inférieure**
+  à celle du neutre (0,91 ; p < 0,0001). Les cerveaux tirés au hasard gardent déjà un cap :
+  un moteur allumé en permanence donne une direction constante. La sélection défait ce
+  cap au lieu de l'installer : sur la figure, la persistance part de 0,93 et baisse
+  régulièrement jusqu'à 0,63, et elle baisse encore à 20 000 pas.
+- **Hypothèse 2 : réfutée.** Aucune PC lue sur les poids n'est enrichie : 1/2 4,3 % contre
+  3,1 % (p = 0,84), 2/1 1,7 % contre 5,1 % (p = 0,036, sous le neutre, non retenu au
+  seuil). Même constat que pour tous les mondes précédents. La mémoire d'un cap n'a donc
+  pas produit de nœud de contrôle : l'évolution n'a pas gardé de cap.
+- **Sans prédiction.** La dépendance au capteur est plus faible qu'avec deux moteurs
+  (+18,3 contre +45,4, p = 0,0015), et elle monte encore à 20 000 pas (de −30 à +24).
+  Les agents bougent presque toujours quand le capteur vaut 0 (98,8 %) et un peu moins
+  quand il vaut 1 (80,5 %). La face « capteur = 1 » SBN est plus rare qu'au neutre
+  (1,1 % contre 11,2 %, p < 0,0001), comme à k = 2 et 4 avec deux moteurs : des poids
+  positifs du capteur vers le cerveau.
+
+### Lecture
+
+L'agent n'a pas de raison de tenir un cap dans ce monde : il ne perçoit rien de la
+direction de la nourriture, et le déchet qui gêne se trouve sur sa propre case, qu'un
+déplacement dans n'importe quelle direction suffit à quitter. Une marche qui change de
+direction à chaque pas fait l'affaire. Les cinq moteurs lus par trois nœuds ne rendent pas
+le cap rentable. Ce que ce monde rend utile, le capteur à un bit le donne déjà. Une
+mesure plus riche de l'environnement (nourriture sur la case, par direction) serait
+nécessaire pour qu'un cap serve à quelque chose ; c'est la prochaine étape prévue.
+
+### Limites
+
+- Une graine ; beaucoup de tests, non corrigés.
+- La persistance se mesure seulement quand l'agent bouge aux deux pas. Elle ne dit rien de
+  la qualité du cap (un cosinus de 0,68 peut cacher des virages réguliers).
+- Dispersion entre populations grande (écart-type de 25 points sur la dépendance).
+- Départ coûteux : cinq moteurs au hasard coûtent de l'énergie, l'effectif tombe à 71
+  après 20 pas avant de remonter. Les mesures portent sur la seconde moitié.
+
 ## Suites possibles
 
 Un capteur de nourriture sur la case, normalisé sur 7 niveaux (0 à 6), puis des capteurs
