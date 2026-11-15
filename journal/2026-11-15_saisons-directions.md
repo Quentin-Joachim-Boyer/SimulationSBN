@@ -122,3 +122,23 @@ voulue (cerveau sans étiquette, cinq moteurs, k = 2) et avec beaucoup de varié
 cerveau de 3 nœuds ne trouve pas de réponse à l'hiver. Pistes inchangées : un capteur
 plus riche (capteur gradué de nourriture : une case vide en hiver ne se distingue pas
 aujourd'hui d'un repas disputé ou empoisonné), un cerveau de 4 ou 5 nœuds.
+
+## Prolongation à 100 000 pas (écrit avant de lancer)
+
+Quentin demande de faire durer la simulation plus longtemps. Mêmes régimes, mêmes graines
+(les 200 premières années sont donc celles ci-dessus), 1 000 années au lieu de 200 :
+`run.py --years 1000`. Une valeur par population : moyenne des 500 dernières années.
+
+Hypothèses (Claude) :
+
+1. La saison reste ignorée : économie d'hiver inférieure à 10 points. Réfutation :
+   au moins 10 points et supérieure au neutre.
+2. Les agents ne bougent pas moins en hiver (écart hiver − été ≥ −10 points).
+3. Aucune PC lue sur les poids ni PTBN enrichie contre sans saisons et contre neutre.
+4. La dépendance au capteur ne monte plus : moyenne des années 500 à 1 000 à moins de
+   10 points de celle des années 100 à 200 (46,9). Je n'en suis pas sûr, elle montait
+   encore dans d'autres expériences.
+
+### Résultat de la prolongation
+
+(à compléter)
