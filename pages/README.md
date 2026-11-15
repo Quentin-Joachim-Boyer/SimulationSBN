@@ -11,3 +11,4 @@ l'expérience correspondante (graine 0, population 0).
 | `monde_2d_directions_pop0.html` | directions absolues, mutation 0,1 | `journal/2026-11-15_directions-absolues.md` |
 | `monde_2d_fondateur_mu0.3_pop0.html` | fondateur unique, mutation 0,3 | `journal/2026-11-15_fondateur-unique.md` |
 | `monde_2d_saisons-directions_pop0.html` | saisons, cinq moteurs, mutation 0,5 | `journal/2026-11-15_saisons-directions.md` |
+| `monde_2d_saisons-directions_100000pas_pop0.html` | la même, prolongée à 100 000 pas (cinq scènes) | `journal/2026-11-15_saisons-directions.md` |
