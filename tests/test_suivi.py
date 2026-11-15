@@ -29,4 +29,4 @@ def test_par_population_averages_the_second_half_and_blanks_extinct_populations(
     out = par_population(series, extinct=[False, True])
     assert (out[:, 0] == 15).all()
     assert out[0, 1] == 9 and np.isnan(out[1:, 1]).all()
-    assert len(KINDS) == 9
+    assert len(KINDS) == 11

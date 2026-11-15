@@ -20,7 +20,7 @@ import numpy as np
 from simsbn.milieu import step_brains
 from simsbn.monde import Corps, Monde, Vie, read_motors
 from simsbn.stats import format_p, permutation_test
-from simsbn.structure import KINDS, Classifier, exact_brain_kinds
+from simsbn.structure import KINDS, Classifier, exact_brain_kinds, exact_structural_parts
 from simsbn.suivi import MEASURES, brains, par_population, suivre
 from simsbn.viz import BLUE, INK, MUTED, ORANGE, apply_style
 
@@ -148,7 +148,8 @@ def main():
     arch = Corps(MOTORS).arch
     sample = arch.random(np.random.default_rng([args.seed, 999]), args.null, BOUND)
     null = _classify(brains(sample))
-    for kind, share in exact_brain_kinds(BOUND).items():
+    exact = exact_brain_kinds(BOUND) | exact_structural_parts(BOUND)
+    for kind, share in exact.items():
         null[KINDS.index(kind)] = share
 
     tasks = [

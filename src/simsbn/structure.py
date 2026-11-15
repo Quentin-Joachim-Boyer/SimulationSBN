@@ -13,10 +13,13 @@ Six mesures par agent, dans l'ordre de ``KINDS`` :
   opératif est une SBF ;
 - ``pc1_po2`` : un nœud ne lit aucun des deux autres (partie contrôle de 1 nœud) ;
 - ``pc2_po1`` : deux nœuds ne lisent pas le troisième (partie contrôle de 2 nœuds) ;
-- ``pc2_po1_vivante`` : idem, avec une partie contrôle qui n'est pas toujours éteinte.
+- ``pc2_po1_vivante`` : idem, avec une partie contrôle qui n'est pas toujours éteinte ;
+- ``pc1_po2_poids``, ``pc2_po1_poids`` : les mêmes décompositions lues sur les poids.
 
-« Lire » est pris sur la dynamique : j lit i si changer i change parfois la valeur
-suivante de j. Les arcs partie contrôle → partie opérative sont libres.
+Pour les trois premières, « lire » est pris sur la dynamique : j lit i si changer i
+change parfois la valeur suivante de j. Pour les deux dernières, qui font la définition
+(décision du 15 novembre), j lit i si le poids i → j est non nul. Dans les deux cas,
+les arcs partie contrôle → partie opérative sont libres, et le capteur est hors mesure.
 """
 
 from __future__ import annotations
@@ -40,7 +43,10 @@ KINDS = [
     "pc1_po2",
     "pc2_po1",
     "pc2_po1_vivante",
+    "pc1_po2_poids",
+    "pc2_po1_poids",
 ]
+STRUCTURAL_KINDS = ["pc1_po2_poids", "pc2_po1_poids"]
 BRAIN_KINDS = [
     "controle_cerveau",
     "psbn_cerveau",
@@ -78,7 +84,8 @@ class Classifier:
                     pc2_living,
                 )
             out.append(self.kinds[f])
-        return np.array(out, dtype=bool).reshape(len(out), len(KINDS))
+        dynamic = np.array(out, dtype=bool).reshape(len(out), len(KINDS) - len(STRUCTURAL_KINDS))
+        return np.concatenate([dynamic, structural_parts(population)], axis=1)
 
     def __call__(self, population) -> np.ndarray:
         """Part de la population qui a chaque propriété."""
@@ -101,6 +108,30 @@ def control_parts(f) -> list[tuple[int, ...]]:
         for pc in combinations(range(d), size)
         if not any(lit[j][i] for j in pc for i in range(d) if i not in pc)
     ]
+
+
+def structural_parts(population) -> np.ndarray:
+    """Décompositions 1/2 et 2/1 lues sur les poids du cerveau : tableau ``(N, 2)``.
+
+    ``population`` est ``(N, d, d)`` avec le capteur en tête ; seule la matrice
+    cerveau → cerveau compte. Un nœud forme une partie contrôle de 1 nœud si ses deux
+    poids entrants venant des autres nœuds sont nuls ; il est la partie opérative d'une
+    décomposition 2/1 si ses deux poids sortants vers les autres nœuds sont nuls.
+    """
+    W = np.asarray(population)[:, ARCH.n_in : ARCH.d, ARCH.n_in : ARCH.d]
+    off = ~np.eye(ARCH.n_brain, dtype=bool)
+    nonzero = (W != 0) & off
+    reads_nobody = ~nonzero.any(axis=1)  # [n, i] : i ne lit aucun autre nœud
+    read_by_nobody = ~nonzero.any(axis=2)  # [n, i] : aucun autre nœud ne lit i
+    return np.stack([reads_nobody.any(axis=1), read_by_nobody.any(axis=1)], axis=1)
+
+
+def exact_structural_parts(bound: int) -> dict[str, float]:
+    """Part de ``STRUCTURAL_KINDS`` sous la loi uniforme : deux poids nuls par nœud,
+    sur des poids distincts d'un nœud à l'autre."""
+    one = 1 / (2 * bound + 1) ** 2
+    share = 1 - (1 - one) ** ARCH.n_brain
+    return dict.fromkeys(STRUCTURAL_KINDS, share)
 
 
 def brain_kinds(brain) -> tuple[bool, ...]:

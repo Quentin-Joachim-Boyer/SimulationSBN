@@ -33,8 +33,11 @@ distincts pour les trois nœuds, d'où 1 − (48/49)³ :
 
 | Décomposition | Structurelle | Dynamique (rappel) |
 |---|---|---|
-| 1/2 | 6,04 % | 51,76 % |
-| 2/1 | 6,04 % | 28,85 % |
+| 1/2 | 6,00 % | 51,76 % |
+| 2/1 | 6,00 % | 28,85 % |
+
+Correction avant le lancement : une première version de ce journal donnait 6,04 %, une
+erreur de calcul à la main ; 1 − (48/49)³ = 6,00 %, confirmé sur 200 000 tirages.
 
 La mutation tire une nouvelle valeur uniforme parmi les six autres : sous dérive neutre,
 un poids est nul avec la probabilité 1/7, comme sous la loi uniforme.

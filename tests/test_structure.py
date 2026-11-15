@@ -1,18 +1,23 @@
 import numpy as np
 
 from simsbn import control_nodes, dynamics, is_psbn, null_distribution
+from simsbn.core import batch_dynamics
 from simsbn.milieu import ARCH
 from simsbn.monde import IMMOBILE, REACTIF
 from simsbn.pluripotence import decomposition
-from simsbn.sbf import sbf_tables
+from simsbn.sbf import restrict, sbf_tables
 from simsbn.structure import (
     BRAIN_KINDS,
     KINDS,
+    STRUCTURAL_KINDS,
     Classifier,
     brain_kinds,
     control_parts,
     exact_brain_kinds,
     exact_brain_law,
+    exact_structural_parts,
+    reads,
+    structural_parts,
 )
 
 
@@ -101,3 +106,30 @@ def test_control_parts_on_hand_built_brains():
     assert kinds["pc2_po1"] and kinds["pc2_po1_vivante"] and not kinds["deux_controles"]
     # Si c écrit dans b, la paire n'est plus autonome.
     assert (0, 1) not in control_parts(brain(a_a=1, b_a=-2, a_b=1, c_b=1, a_c=1))
+
+
+def test_structural_parts_read_weights_not_dynamics():
+    W = np.zeros((4, 4), dtype=np.int64)
+    W[0, 0] = 1
+    W[0, 1:] = 3  # le capteur ne compte pas
+    assert structural_parts(W[None]).tolist() == [[True, True]]
+    # Le nœud 1 (ingérer) se maintient et lit le caché par un poids sans effet :
+    # [3·x + (-1)·h > 0] ne dépend pas de h. Lu sur les poids, il lit quand même.
+    W[1, 1], W[3, 1] = 3, -1
+    W[1, 2], W[1, 3], W[2, 3], W[3, 2] = 1, 1, 1, 1  # tout le reste se lit
+    assert structural_parts(W[None]).tolist() == [[False, False]]
+    f = tuple(batch_dynamics(W[None])[0])
+    brain = tuple(restrict(f[j], ARCH.d, 0, 0) for j in ARCH.brain)
+    assert not reads(brain[0], 2, 3)  # sur la dynamique, l'ingestion ne lit pas le caché
+    assert (0,) in control_parts(brain)  # donc 1/2 dynamique, pas structurelle
+    W[3, 1] = 0
+    assert structural_parts(W[None]).tolist() == [[True, False]]
+
+
+def test_structural_shares_match_sampling():
+    exact = exact_structural_parts(3)
+    assert list(exact) == STRUCTURAL_KINDS
+    assert round(100 * exact["pc2_po1_poids"], 2) == 6.00
+    sample = ARCH.random(np.random.default_rng(1), 200_000, 3)
+    shares = structural_parts(sample).mean(axis=0)
+    assert np.allclose(shares, list(exact.values()), atol=0.002)

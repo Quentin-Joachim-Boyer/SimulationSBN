@@ -18,7 +18,7 @@ from commun import BOUND, ESPACE, REGIMES, naissance
 
 from simsbn.milieu import ARCH
 from simsbn.stats import format_p, permutation_test
-from simsbn.structure import KINDS, Classifier, exact_brain_kinds
+from simsbn.structure import KINDS, Classifier, exact_brain_kinds, exact_structural_parts
 from simsbn.viz import BLUE, INK, MUTED, ORANGE, apply_style
 
 COLORS = {"mélangé": BLUE, "espace": ORANGE, "neutre": MUTED}
@@ -29,7 +29,7 @@ ACTIVITY = [
 MEASURES = ["effectif", *ACTIVITY, "dechet", *KINDS]
 TESTED = ["dependance", "scission_sbn", "controle_cerveau", "psbn_cerveau", "controle_interne",
           "deux_controles", "deux_controles_sbn", "pc1_po2", "pc2_po1",
-          "pc2_po1_vivante"]  # fmt: skip
+          "pc2_po1_vivante", "pc1_po2_poids", "pc2_po1_poids"]  # fmt: skip
 PANELS = [  # (mesure, titre, unité, indice du modèle nul uniforme ou None)
     ("effectif", "Effectif", "agents vivants", None),
     ("dependance", "Dépendance au contexte : P(bouger | 0) - P(bouger | 1)", "points de %", None),
@@ -130,7 +130,8 @@ def main():
     out = Path(__file__).parent / "out"
     out.mkdir(exist_ok=True)
     null = _classify(ARCH.random(np.random.default_rng([args.seed, 999]), args.null, BOUND))
-    for kind, share in exact_brain_kinds(BOUND).items():
+    exact = exact_brain_kinds(BOUND) | exact_structural_parts(BOUND)
+    for kind, share in exact.items():
         null[KINDS.index(kind)] = share
 
     tasks = [
