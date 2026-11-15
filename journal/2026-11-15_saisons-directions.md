@@ -64,4 +64,61 @@ faible, l'expérience sera non informative sur la réponse à l'hiver, et ce ser
 
 ## Résultat
 
-(à compléter après l'exécution)
+Exécuté le 15 novembre (`experiments/saisons_directions/run.py`, graine 0, 24 populations
+par régime, 200 années, aucune extinction). Moyenne ± écart-type entre populations, 100
+dernières années ; entre crochets, moyenne des 10 premières années.
+
+| mesure | saisons | sans saisons | neutre à saisons |
+|---|---|---|---|
+| effectif fin d'été | 175 ± 10 [89] | 182 ± 6 [113] | 408 |
+| effectif fin d'hiver | 122 ± 6 [75] | 182 ± 6 [114] | 145 |
+| perte hivernale (%) | 29,6 ± 5,2 [13,6] | −0,4 | 64,5 |
+| ingérer, été / hiver (%) | 98,5 / 98,0 | 98,9 / — | 30,7 / 25,2 |
+| économie d'hiver (points) | 0,5 ± 0,6 [−3,6] | — | 5,5 ± 2,3 |
+| bouger, été / hiver (%) | 60,4 / 66,2 [93,6 / 96,7] | — | 66,7 / 54,7 |
+| bouger hiver − été (points) | +5,9 ± 2,5 | — | −12,0 ± 3,4 |
+| dépendance au capteur (points) | 46,9 ± 24,6 [−3,9] | 51,4 ± 21,0 [−3,9] | −18,7 |
+| persistance | 0,66 ± 0,14 [0,92] | 0,62 ± 0,15 [0,90] | 0,92 |
+| PC de 1 nœud, poids (%) | 5,6 ± 11,3 | 1,0 ± 2,4 | 7,0 ± 6,4 |
+| PC de 2 nœuds, poids (%) | 4,6 ± 16,0 | 1,5 ± 2,9 | 5,5 ± 3,2 |
+| PTBN (%) | 6,1 ± 9,6 | 4,6 ± 13,8 | 7,3 ± 2,9 |
+
+1. **L'hiver compte : à la limite.** Perte hivernale 29,6 %, juste sous le seuil de 30 %
+   écrit à l'avance (13,6 % les dix premières années : elle monte avec l'effectif, comme
+   prévu). L'hiver retire près d'un tiers de la population chaque année ; le seuil n'est
+   pas atteint au sens strict.
+2. **La saison est ignorée (hypothèse tenue, résultat négatif).** Économie d'hiver
+   0,5 point : les agents tentent d'ingérer 98 % du temps en hiver comme en été.
+3. **Ils bougent plus en hiver (hypothèse tenue).** +5,9 points (neutre −12,0,
+   p < 0,0001) : capteur à 0, donc déplacement, pour rien.
+4. **Structure : aucune PC ni PTBN enrichie (hypothèse tenue, résultat négatif).**
+   Saisons contre sans saisons : p = 0,07 (PC de 1 nœud), 0,59, 0,71 ; contre neutre :
+   p ≥ 0,56. Dispersion énorme entre populations (écarts-types de 10 à 16 points).
+
+Sans prédiction :
+
+- Le régime saisons ne se distingue du régime sans saisons que par la démographie :
+  dépendance (p = 0,52) et persistance (p = 0,47) indistinguables.
+- Avec le départ aléatoire et mu = 0,5, la dépendance au capteur atteint 47 à 51 points et
+  les agents ne bougent plus que 60 % du temps en été : le comportement « rester quand on
+  est nourri, bouger sinon » réapparaît avec cinq moteurs. Au résultat 13 (mu = 0,1,
+  division à 20) la dépendance n'était que de 18 points et montait encore. La mutation
+  plus forte, la réserve doublée ou les deux peuvent l'expliquer : non séparé ici.
+- Dans sans saisons, les PC lues sur les poids sont plus rares que la loi uniforme
+  (1,0 % et 1,5 % contre 6,0 %), comme au résultat 9 : cerveaux plus intégrés que le
+  hasard. Non testé contre un neutre sans saisons (il n'y en a pas dans cette expérience).
+
+## Limites
+
+Une graine ; seuil de l'hypothèse 1 manqué de peu ; pas de neutre sans saisons ; mu et
+division changent tous deux par rapport au résultat 13 ; tests non corrigés ; la mesure
+« bouger » est le déplacement net (nord et sud allumés ensemble ne comptent pas).
+
+## Lecture
+
+Troisième essai de saisons, troisième résultat négatif, cette fois dans la configuration
+voulue (cerveau sans étiquette, cinq moteurs, k = 2) et avec beaucoup de variété
+(mu = 0,5). Avec un capteur d'un bit qui dit seulement « mon énergie a monté », un
+cerveau de 3 nœuds ne trouve pas de réponse à l'hiver. Pistes inchangées : un capteur
+plus riche (capteur gradué de nourriture : une case vide en hiver ne se distingue pas
+aujourd'hui d'un repas disputé ou empoisonné), un cerveau de 4 ou 5 nœuds.
