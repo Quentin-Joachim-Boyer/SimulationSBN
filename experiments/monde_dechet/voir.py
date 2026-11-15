@@ -1,6 +1,8 @@
 """Visualisation du monde 2D : rejoue pas à pas une des populations mesurées.
 
-    python experiments/monde_dechet/voir.py [--regime saisons]   # écrit out/monde_2d.html
+    python experiments/monde_dechet/voir.py [--regime saisons]
+
+Écrit ``out/monde_2d_<régime>_pop0.html`` (un fichier par cas).
 
 Resimule la population 0 du régime espace (même graine que ``run.py``), enregistre
 trois scènes de 300 pas et les insère dans ``voir.html``, une page autonome à ouvrir
@@ -231,7 +233,8 @@ def main():
     page = (HERE / "voir.html").read_text(encoding="utf-8")
     marker = "/*DONNEES*/null"
     assert page.count(marker) == 1
-    path = out / "monde_2d.html"
+    suffix = f"_mu{args.mu:g}" if args.regime == "fondateur" else ""
+    path = out / f"monde_2d_{args.regime}{suffix}_pop{args.replicate}.html"  # un fichier par cas
     path.write_text(page.replace(marker, json.dumps(data, separators=(",", ":"))), encoding="utf-8")
     print(f"page : {path} ({path.stat().st_size / 1e6:.1f} Mo)")
 
