@@ -585,15 +585,16 @@ const DATA = /*DONNEES*/null;
 
   function start(saved) {
     $("rep").textContent = DATA.replicate;
-    $("regime").textContent = { saisons: "saisons cachées", directions: "directions absolues" }[DATA.regime] || "espace";
+    $("regime").textContent = { saisons: "saisons cachées", directions: "directions absolues", fondateur: "directions absolues, fondateur unique" }[DATA.regime] || "espace";
     $("divide").textContent = DATA.divide_at;
-    if (DATA.regime === "directions") {
+    if (DATA.regime === "directions" || DATA.regime === "fondateur") {
       $("intro-text").textContent = "Chaque point est un agent à capteur d'un bit et à cerveau de trois nœuds sans étiquette, lus par cinq moteurs : ingérer, et quatre directions absolues dont les effets s'additionnent. Il laisse un déchet toxique là où il mange, et ne perçoit qu'une chose : son énergie vient-elle de monter ? Les cerveaux réagissent en deux pas d'agent par pas du milieu.";
       $("step-text").innerHTML = "<b>Un pas.</b> Les moteurs allumés au pas précédent agissent : l'agent se déplace de la somme des directions allumées (nord et sud s'annulent), puis ingère si le moteur « ingérer » l'est : une unité de nourriture s'il en reste, et un risque de poison qui croît avec le déchet de la case. Pendant ce temps, le cerveau et les moteurs se mettent à jour deux fois.";
       $("energy-text").innerHTML = `<b>L'énergie.</b> +4 par unité ingérée ; −1 par pas, par ingestion tentée et par moteur de direction allumé (même si les directions s'annulent) ; −4 par empoisonnement. Mort à 0, division à <span id="divide">${DATA.divide_at}</span>. Aucune cible, aucune note : seule la survie trie.`;
       document.querySelector("#strip-labels li:nth-child(3)").textContent = "Se déplace (net)";
       document.querySelector("#strip-labels li:nth-child(4)").textContent = "Direction allumée";
     }
+    if (DATA.regime === "fondateur") $("season-note").textContent = `Au départ, les 300 agents sont des clones d'un même génotype : toute la variété vient des mutations (${fr.format(DATA.mu)} par naissance). En mode « Lignée », une couleur par clone du pas 0. `;
     if (DATA.summer) $("season-note").textContent = `La nourriture n'arrive qu'en été (${DATA.summer} pas) et pas en hiver (${DATA.winter} pas) ; l'agent ne perçoit pas la saison. `;
     $("dims").textContent = `${H} × ${W}`;
     $("scenes").innerHTML = DATA.scenes.map((s, i) =>

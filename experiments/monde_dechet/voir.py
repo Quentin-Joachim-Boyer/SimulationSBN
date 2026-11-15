@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import argparse
 import base64
+import csv
 import importlib.util
 import json
 from pathlib import Path
@@ -27,6 +28,8 @@ from simsbn.structure import KINDS, Classifier
 HERE = Path(__file__).parent
 RESERVE = HERE.parent / "saisons_reserve" / "run.py"
 DIRECTIONS = HERE.parent / "directions" / "run.py"
+FONDATEUR = HERE.parent / "fondateur"
+RATES = (0.0, 0.1, 0.3, 1.0)  # ceux de experiments/fondateur/run.py
 SCENES = [("Départ", 0), ("Pas 2 000", 2_000), ("Fin", 19_700)]  # (nom, pas de départ)
 # Octet d'état d'un agent : ce qu'il a fait pendant le pas, et ce qui lui est arrivé.
 SENSOR, EAT, MOVE, HIDDEN, BORN, FED, POISONED = (1 << k for k in range(7))
@@ -103,17 +106,40 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument(
         "--regime",
-        choices=("espace", "saisons", "directions"),
+        choices=("espace", "saisons", "directions", "fondateur"),
         default="espace",
-        help="espace : monde à déchet ; saisons : saisons cachées ; directions : cinq moteurs",
+        help="espace : monde à déchet ; saisons : saisons cachées ; directions : cinq moteurs ; "
+        "fondateur : cinq moteurs, 300 clones au départ",
     )
+    parser.add_argument("--mu", type=float, default=0.3, choices=RATES,
+                        help="mutations par naissance (régime fondateur)")  # fmt: skip
     parser.add_argument("--replicate", type=int, default=0, help="population du régime choisi")
     parser.add_argument("--frames", type=int, default=300, help="pas enregistrés par scène")
     parser.add_argument("--seed", type=int, default=0)
     args = parser.parse_args()
 
     nodes = ["capteur", "ingérer", "bouger", "caché"]
-    if args.regime == "directions":
+    expected = None  # effectif final relevé par l'expérience, quand la population n'est pas gardée
+    if args.regime == "fondateur":
+        spec = importlib.util.spec_from_file_location("directions_run", DIRECTIONS)
+        directions = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(directions)
+        monde, corps = directions.ESPACE, directions.CORPS
+        founder = np.load(FONDATEUR / "out" / "fondateur.npy")
+        # même flux que experiments/fondateur/run.py, régime « directions »
+        rng = np.random.default_rng([args.seed, 7, 2, 0, RATES.index(args.mu), args.replicate])
+        clones = np.repeat(founder[None], 300, axis=0)
+        vie = Vie(clones, monde, rng, args.mu, directions.BOUND, corps)
+        measured_path = FONDATEUR / "out" / "absent.npz"
+        nodes = ["capteur", "c1", "c2", "c3", *corps.motors]
+        series = FONDATEUR / "out" / "fondateur_unique.csv"
+        if series.exists():
+            with open(series) as handle:
+                for row in csv.DictReader(handle):
+                    if (row["regime"], float(row["mu"]), int(row["replicate"]), row["step"]) == (
+                        "directions", args.mu, args.replicate, "20000"):  # fmt: skip
+                        expected = int(float(row["effectif"]))
+    elif args.regime == "directions":
         spec = importlib.util.spec_from_file_location("directions_run", DIRECTIONS)
         directions = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(directions)
@@ -160,8 +186,14 @@ def main():
         if not same:
             raise SystemExit("la population rejouée n'est pas celle de l'expérience")
 
+    if expected is not None and vie.t == 20_000:
+        print(f"effectif final {len(vie)}, relevé par run.py : {expected}")
+        if len(vie) != expected:
+            raise SystemExit("la population rejouée n'est pas celle de l'expérience")
+
     data = {
         "regime": args.regime,
+        "mu": args.mu,
         "height": monde.height,
         "width": monde.width,
         "food_cap": monde.food_cap,
