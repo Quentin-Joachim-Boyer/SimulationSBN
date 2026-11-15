@@ -62,4 +62,67 @@ regarde le cerveau à capteur éteint.
 
 ## Résultat
 
-À remplir.
+Les deux expériences relancées redonnent à l'identique toutes les lignes déjà publiées.
+Parts en %, seconde moitié, moyenne ± écart-type entre 24 populations.
+
+| Lecture directe   | Mélangé       | Espace        | Neutre        | Loi uniforme |
+|-------------------|---------------|---------------|---------------|--------------|
+| 1/2, toutes       | 62,86 ± 14,63 | 24,35 ± 19,07 | 52,87 ± 12,14 | 51,764       |
+| 1/2 vivante (PTBN)| 17,60 ± 8,23  | 8,99 ± 9,93   | 9,45 ± 8,46   | 8,494        |
+| 2/1, toutes       | 36,49 ± 15,06 | 10,82 ± 12,27 | 31,41 ± 12,23 | 28,850       |
+| 2/1 vivante       | 30,31 ± 12,74 | 10,81 ± 12,26 | 26,20 ± 11,74 | 22,688       |
+
+Valeurs p contre le neutre : mélangé 0,014 (1/2), 0,21 (2/1), 0,26 (2/1 vivante) ;
+espace < 0,0001 (1/2), < 0,0001 (2/1), 0,0002 (2/1 vivante).
+
+| Moteurs lecteurs  | Mélangé retardé | Mélangé immédiat | Espace retardé | Espace immédiat | Neutre        |
+|-------------------|-----------------|------------------|----------------|-----------------|---------------|
+| 1/2, toutes       | 49,30 ± 16,26   | 50,72 ± 20,99    | 45,80 ± 30,26  | 65,32 ± 33,21   | 55,85 ± 12,98 |
+| 2/1, toutes       | 30,38 ± 17,27   | 28,53 ± 14,58    | 19,40 ± 21,79  | 47,99 ± 28,68   | 31,09 ± 13,83 |
+| 2/1 vivante       | 28,42 ± 17,18   | 25,71 ± 13,10    | 17,03 ± 20,18  | 36,87 ± 23,78   | 23,81 ± 11,39 |
+
+Valeurs p contre le neutre : toutes ≥ 0,0138 (la plus basse : 2/1 en espace immédiat,
+dans le sens d'un enrichissement ; 0,035 en espace retardé, dans l'autre sens).
+
+- **Hypothèse 1 : réfutée.** En régime mélangé, la 2/1 vivante n'est pas enrichie (30,3 %
+  contre 26,2 %, p = 0,26).
+- **Hypothèse 2 : confirmée.** En régime espace à lecture directe, la 1/2 tombe à 24,4 %
+  contre 52,9 % en neutre (p < 0,0001).
+- **Sans prédiction, et plus net que je ne pensais** : en régime espace à lecture directe,
+  la 2/1 est aussi appauvrie (10,8 % contre 31,4 %, p < 0,0001). Les cerveaux y sont plus
+  densément couplés.
+
+### Analyse après coup (non prévue) : qui lit qui
+
+Part des agents finaux (cerveau à capteur éteint) dont un nœud lit un autre, ou est mort.
+
+| Lecture directe | Nœud mort | Le déplacement lit l'ingestion | Le déplacement lit le caché | L'ingestion lit le caché |
+|-----------------|-----------|--------------------------------|-----------------------------|--------------------------|
+| Mélangé         | déplacement 40 %, caché 20 % | 40 % | 48 % | 71 % |
+| Espace          | déplacement 0 %, caché 17 %  | 92 % | 88 % | 85 % |
+| Neutre          | 16 à 23 % selon le nœud      | 64 % | 58 % | 68 % |
+
+En régime espace, le déplacement n'est jamais mort et lit presque toujours les deux
+autres nœuds, qui se lisent eux-mêmes beaucoup. Une PC autonome y est donc rare. En régime
+mélangé, l'excès de 1/2 vient surtout du nœud de déplacement mort (40 %), donc d'une PC
+morte : c'est le cas dégénéré.
+
+**Lecture.** Là où le comportement dépend du contexte (régime espace, lecture directe), le
+cerveau ne se décompose pas en PC/PO : il est intégré. Avec des moteurs lecteurs, ce
+lien disparaît (espace immédiat : 2/1 à 48 %, sens inverse, p = 0,014). Les actions
+n'étant plus dans le cerveau, rien n'oblige le nœud qui porte le comportement à lire
+les autres.
+
+### Limites
+
+- Une graine, les mêmes populations ; neuf tests de plus, sans correction.
+- « Lire » est pris sur la dynamique ; un poids sans effet ne compte pas.
+- Cerveau à capteur éteint seulement : un nœud que seul le capteur allume paraît mort.
+
+## Suites possibles
+
+- Compter le capteur dans la décomposition : il est par construction une PC externe.
+  Une PC interne qui lit le capteur sans être lue en retour serait une autre classe.
+- Décompositions emboîtées (la PC ou la PO elle-même PC/PO), prévues par Quentin.
+- Type d'attracteurs de la PC (plusieurs points fixes, cycle, un seul point fixe).
+- Exclure les PC mortes de la 1/2 et de la 2/1 dans les tableaux, puisqu'elles dominent.
