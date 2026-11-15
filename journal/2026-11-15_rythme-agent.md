@@ -93,6 +93,63 @@ agents sur les 100 derniers pas. Paramètres laissés tels quels.
 Une exécution. Si plus de la moitié des populations d'un régime s'éteignent, je rapporte
 sans relancer.
 
+## Résultat
+
+`python experiments/rythme/run.py`, graine 0, 24 populations par régime, 20 000 pas,
+moyennes de la seconde moitié ± écart-type entre populations. Aucune extinction.
+
+|                           | k = 1         | k = 2         | k = 4         | Neutre        |
+|---------------------------|---------------|---------------|---------------|---------------|
+| Effectif                  | 161           | 161           | 160           | 400           |
+| P(bouger), capteur 0      | 67,4 %        | 98,5 %        | 98,4 %        | 27,0 %        |
+| P(bouger), capteur 1      | 55,2 %        | 53,0 %        | 48,1 %        | 35,3 %        |
+| **Dépendance au capteur** | +12,2 ± 25,2  | +45,4 ± 29,4  | +50,3 ± 27,0  | -8,3 ± 8,4    |
+| 1/2 sur les poids         | 3,0 ± 3,1 %   | 4,0 ± 7,7 %   | 4,7 ± 8,7 %   | 7,5 ± 8,3 %   |
+| 2/1 sur les poids         | 5,1 ± 8,0 %   | 4,1 ± 10,5 %  | 9,3 ± 21,3 %  | 6,2 ± 8,2 %   |
+| PTBN (cerveau seul)       | 13,0 ± 19,3 % | 13,9 ± 19,7 % | 9,9 ± 15,5 %  | 9,9 ± 8,7 %   |
+| Face « capteur = 1 » SBN  | 13,8 ± 25,3 % | 3,2 ± 7,7 %   | 2,3 ± 3,9 %   | 10,8 ± 8,3 %  |
+
+- **Hypothèse 1 : confirmée.** La dépendance passe de +12,2 (k = 1) à +45,4 (k = 2,
+  p = 0,0002) et +50,3 (k = 4, p < 0,0001) ; k = 4 n'est pas distinguable de k = 2
+  (p = 0,56). Avec k = 2 et k = 4, elle est celle de la lecture directe (+50,6 ; p = 0,43
+  et p = 0,96), alors que k = 1 y reste inférieur (p < 0,0001). Le k = 1 de ce code
+  redonne le résultat 7 dans l'ordre de grandeur (+22,6 ± 22,2 alors ; +12,2 ± 25,2
+  ici, avec d'autres tirages : les écarts sont dans le bruit).
+- **Hypothèse 2 : confirmée.** Aucune des deux PC lues sur les poids n'est supérieure au
+  neutre (1/2 : p = 0,011 à k = 1, **sous** le neutre, 0,16 et 0,28 ; 2/1 : p = 0,64,
+  0,47 et 0,59). Dispersions très grandes (2/1 à k = 4 : 9,3 ± 21,3 %), c'est-à-dire
+  quelques populations à beaucoup et la plupart à rien.
+- **Sans prédiction.** La face « capteur = 1 » SBN est plus rare qu'au neutre à k = 2
+  (3,2 % contre 10,8 %, p = 0,0019) et à k = 4 (2,3 %, p < 0,0001) : des poids du
+  capteur vers le cerveau sont positifs, ce qui était rare en lecture directe, où le
+  poids capteur → déplacement était négatif chez 99 % des agents. La classe à deux
+  nœuds de contrôle est elle aussi plus rare qu'au neutre à k = 4 (0,04 % contre 0,53 %,
+  p = 0,0088 ; sens SBN, p = 0,0042). PTBN, PSBN : aucune différence (p ≥ 0,32), sauf
+  PSBN à k = 2 (1,3 % contre 3,7 %, p = 0,032, non retenu au seuil).
+
+### Lecture
+
+- Les agents au cerveau sans étiquette et à moteurs lecteurs retrouvent le comportement
+  de la lecture directe dès que la réaction tient dans un pas du milieu. Le coût du
+  retard du résultat 7 tenait au fait que l'information arrivait un pas du milieu trop
+  tard, pas à la lecture par des nœuds. Reste à voir si k = 2 suffit, car k = 4 ne fait
+  pas mieux.
+- Toujours aucune PC interne. Cela renforce la lecture du résultat 9 : le contexte vient
+  du capteur, et rien dans ce monde ne demande d'en construire un dans le cerveau.
+- La fenêtre de comparaison est la seconde moitié. Sur la figure, la dépendance de k = 2
+  et k = 4 monte encore à 20 000 pas : les valeurs ci-dessus sous-estiment sans doute
+  l'état d'arrivée.
+
+### Limites
+
+- Une graine ; beaucoup de tests, non corrigés.
+- Dispersion énorme entre populations : en k = 2, 8 populations sur 24 ont une dépendance
+  inférieure à 20 points et 2 supérieure à 80. Les moyennes cachent des états distincts.
+- Dépendance mesurée avec le capteur « auquel l'action a pu réagir », défini
+  différemment à k = 1 (deux pas avant) et k ≥ 2 (le dernier connu) ; c'est voulu, mais
+  la comparaison entre k = 1 et k ≥ 2 en dépend.
+- k est le même pour tous et gratuit ; le rythme mutable et coûteux reste à faire.
+
 ## Suites possibles
 
 Un rythme `k` par agent, mutable, avec un coût d'énergie croissant ; les saisons dans
