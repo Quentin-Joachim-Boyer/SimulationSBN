@@ -141,4 +141,37 @@ Hypothèses (Claude) :
 
 ### Résultat de la prolongation
 
-(à compléter)
+Exécuté le 15 novembre (`run.py --years 1000`, aucune extinction). Moyenne ± écart-type
+entre populations, années 500 à 1 000.
+
+| mesure | saisons | sans saisons | neutre à saisons |
+|---|---|---|---|
+| effectif fin d'été / fin d'hiver | 184 / 120 | 187 / 187 | 408 / 145 |
+| perte hivernale (%) | 34,0 ± 5,2 | −0,2 | 64,5 |
+| économie d'hiver (points) | 0,3 ± 0,3 | — | 5,7 ± 1,4 |
+| bouger, été / hiver (%) | 56,1 / 64,1 | — | 69,0 / 56,9 |
+| bouger hiver − été (points) | +8,0 ± 1,0 | — | −12,2 ± 1,6 |
+| dépendance au capteur (points) | 53,3 ± 15,3 | 55,7 ± 7,4 | −18,5 |
+| persistance | 0,68 ± 0,16 | 0,62 ± 0,12 | 0,92 |
+| PC de 1 nœud, poids (%) | 1,4 ± 2,9 | 0,9 ± 1,6 | 6,4 ± 2,2 |
+| PC de 2 nœuds, poids (%) | 2,0 ± 5,7 | 2,0 ± 5,2 | 6,0 ± 2,5 |
+| PTBN (%) | 3,0 ± 5,7 | 2,4 ± 4,3 | 10,1 ± 2,7 |
+
+1. **Saison ignorée : tenue.** Économie d'hiver 0,3 point, stable sur toute la durée.
+2. **Tenue.** Les agents bougent plus en hiver (+8,0 points), stable depuis l'année 300.
+3. **Aucun enrichissement : tenue, et c'est même un appauvrissement.** Les PC lues sur
+   les poids et les PTBN deviennent plus rares qu'au neutre (p < 0,0001 ; 0,0006 pour la
+   PC de 2 nœuds), dans saisons comme dans sans saisons (entre eux : p ≥ 0,44). Par
+   tranche de 100 années, dans saisons : PC de 1 nœud 5,9 % → 0,8 à 1,4 % ; PTBN 5,2 à
+   6,6 % les 400 premières années → 2,2 à 3,2 % ensuite. À 20 000 pas cet écart n'était pas
+   visible (dispersion trop grande) : il faut la durée pour le voir.
+4. **Dépendance stabilisée : tenue.** 53,3 points contre 46,9 ; par tranche de 100
+   années : 13, 47, 52, 54, 55, 55, 55, 53, 52, 52. Le comportement est en place vers
+   l'année 300 (30 000 pas) et ne change plus en moyenne ; la perte hivernale se stabilise
+   à 34 % (au-dessus du seuil de 30 % manqué de peu à 20 000 pas).
+
+Lecture : la durée ne change pas la conclusion sur les saisons. Elle rend net un fait
+déjà vu au résultat 9 en lecture directe : dans le monde spatial, où le comportement
+dépend du capteur, la sélection **élimine** les parties contrôle internes et les nœuds de
+contrôle ; les cerveaux sont plus intégrés que le hasard. Le neutre étant un nul valable
+pour la structure, ce résultat-là est solide dans ses limites (une graine, un monde).

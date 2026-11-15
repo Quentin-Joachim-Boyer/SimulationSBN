@@ -118,6 +118,7 @@ def main():
                         help="mutations par naissance (régime fondateur)")  # fmt: skip
     parser.add_argument("--replicate", type=int, default=0, help="population du régime choisi")
     parser.add_argument("--frames", type=int, default=300, help="pas enregistrés par scène")
+    parser.add_argument("--steps", type=int, default=20_000, help="durée de l'expérience rejouée")
     parser.add_argument("--seed", type=int, default=0)
     args = parser.parse_args()
 
@@ -158,7 +159,7 @@ def main():
             with open(series) as handle:
                 for row in csv.DictReader(handle):
                     if (row["regime"], int(row["replicate"]), row["year"]) == (
-                        "saisons", args.replicate, "199"):  # fmt: skip
+                        "saisons", args.replicate, str(args.steps // 100 - 1)):  # fmt: skip
                         expected = int(float(row["effectif_hiver"]))
     elif args.regime == "directions":
         spec = importlib.util.spec_from_file_location("directions_run", DIRECTIONS)
@@ -192,7 +193,12 @@ def main():
         measured_key = f"espace_{args.replicate}"
     classify = Classifier()
     scenes = []
-    for name, start in SCENES:
+    scenes_plan = list(SCENES)
+    if args.steps > 20_000:  # simulation prolongée : le milieu et la fin en plus
+        half = args.steps // 2
+        scenes_plan[-1] = ("Pas 19 700", 19_700)
+        scenes_plan += [(f"Pas {half:,}".replace(",", " "), half), ("Fin", args.steps - 300)]
+    for name, start in scenes_plan:
         while vie.t < start:
             vie.step()
         scene = record(vie, args.frames, classify)
@@ -201,13 +207,13 @@ def main():
 
     out = HERE / "out"
     out.mkdir(exist_ok=True)
-    if measured_path.exists() and vie.t == 20_000:
+    if measured_path.exists() and vie.t == 20_000 == args.steps:
         same = np.array_equal(np.load(measured_path)[measured_key], vie.population)
         print("population finale identique à celle mesurée par run.py :", "oui" if same else "NON")
         if not same:
             raise SystemExit("la population rejouée n'est pas celle de l'expérience")
 
-    if expected is not None and vie.t == 20_000:
+    if expected is not None and vie.t == args.steps:
         print(f"effectif final {len(vie)}, relevé par run.py : {expected}")
         if len(vie) != expected:
             raise SystemExit("la population rejouée n'est pas celle de l'expérience")
@@ -234,6 +240,8 @@ def main():
     marker = "/*DONNEES*/null"
     assert page.count(marker) == 1
     suffix = f"_mu{args.mu:g}" if args.regime == "fondateur" else ""
+    if args.steps != 20_000:
+        suffix += f"_{args.steps}pas"
     path = out / f"monde_2d_{args.regime}{suffix}_pop{args.replicate}.html"  # un fichier par cas
     path.write_text(page.replace(marker, json.dumps(data, separators=(",", ":"))), encoding="utf-8")
     print(f"page : {path} ({path.stat().st_size / 1e6:.1f} Mo)")
