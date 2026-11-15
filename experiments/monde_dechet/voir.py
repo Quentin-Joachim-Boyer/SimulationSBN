@@ -23,7 +23,7 @@ import numpy as np
 from commun import ESPACE, naissance
 from motifs import motif
 
-from simsbn.milieu import ARCH
+from simsbn.milieu import ARCH, step_brains
 from simsbn.monde import Vie
 from simsbn.structure import KINDS, Classifier
 
@@ -49,8 +49,9 @@ def record(vie, frames: int, classify: Classifier) -> dict:
     counts, index, cell, state, energy = [], [], [], [], []
     local: dict[int, int] = {}  # numéro d'agent -> rang dans la scène
     agents, genotypes, matrices = [], {}, []
-    summer = []
+    summer, pre = [], []
     for f in range(frames):
+        before = dict(zip(vie.ident.tolist(), vie.brain.tolist(), strict=True))
         summer.append(int(monde.is_summer(vie.t)))
         motors = vie.corps.motors
         if motors:  # actions portées par les moteurs : ce qu'ils valaient au début du pas
@@ -82,8 +83,17 @@ def record(vie, frames: int, classify: Classifier) -> dict:
             else:
                 bits |= BORN
             bits |= FED * int(vie.fed[k]) | POISONED * int(vie.poisoned[k])
+            # état du cerveau avant le pas (bits 0 à 2), et bit 3 si l'agent existait déjà
+            b = before.get(ident) if ident in acted else None
+            pre.append(8 | b[0] | b[1] << 1 | b[2] << 2 if b else 0)
             index.append(local[ident])
             state.append(bits)
+        # contrôle : rejouer les pas d'agent depuis l'état d'avant redonne l'état d'après
+        old = np.flatnonzero([i in before and i in acted for i in vie.ident.tolist()])
+        x = np.array([before[i] for i in vie.ident[old].tolist()]).reshape(-1, ARCH.n_brain)
+        for _ in range(vie.corps.ticks):
+            x = step_brains(vie.population[old], vie.sensor[old], x)
+        assert np.array_equal(x, vie.brain[old]), "trajet du cerveau incohérent"
         cell.extend(vie.cell.tolist())
         energy.extend(vie.energy.tolist())
     matrices = np.array(matrices)
@@ -96,6 +106,7 @@ def record(vie, frames: int, classify: Classifier) -> dict:
         "cell": encode(cell, "<u2"),
         "state": encode(state, np.uint8),
         "energy": encode(energy, np.uint8),
+        "pre": encode(pre, np.uint8),
         "ident": [a[0] for a in agents],
         "lineage": [a[1] for a in agents],
         "genotype": [a[2] for a in agents],
@@ -234,6 +245,7 @@ def main():
         "ncols": len(nodes) - 1,
         "kinds": KINDS,
         "brain": ARCH.n_brain,
+        "ticks": vie.corps.ticks,
         "scenes": scenes,
     }
     page = (HERE / "voir.html").read_text(encoding="utf-8")
