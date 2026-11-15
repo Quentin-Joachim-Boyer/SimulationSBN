@@ -87,6 +87,23 @@ dépendance et la persistance. Beaucoup de tests, non corrigés : limite assumé
    rapport à neutre, comme dans tous les mondes testés jusqu'ici (attendu : résultat
    négatif).
 
+## Fondateur retenu (écrit avant l'expérience complète)
+
+`experiments/fondateur/fondateur.py` : les six premiers candidats se sont éteints, le
+septième (effectif moyen 117,7 sur les 500 derniers pas des 3 000) est retenu (journal
+des essais dans `experiments/fondateur/out/fondateur.txt`). Un essai rapide (2 populations,
+600 pas, non retenu comme résultat) montre que ce fondateur **marche déjà en ligne droite**
+(persistance proche de 1, dépendance au capteur proche de 0). Le filtre de viabilité a donc
+sélectionné, au moins ici, un génotype qui a déjà un cap : l'expérience ne peut pas
+demander « la sélection produit-elle des déplacements persistants ? » à partir de ce
+fondateur. Elle demande si, avec de la variété, la sélection **conserve** ce cap mieux que
+la dérive (neutre).
+
+Hypothèse 4 précisée en conséquence : à mu = 0,3 et mu = 1,0, la persistance de directions
+reste plus proche de celle du fondateur (≈ 1) que celle de neutre (où elle s'érode par
+dérive) ; la dépendance au capteur n'est pas attendue différente de 0 dans directions.
+Réfutation : persistance de directions et de neutre indistinguables à ces taux.
+
 ## Limites prévues
 
 Un seul fondateur ; un seul monde ; les populations de directions ont un effectif réduit

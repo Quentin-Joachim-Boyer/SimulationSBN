@@ -18,6 +18,34 @@ ACTIVITY = [
 MEASURES = ["effectif", *ACTIVITY, "dechet", *KINDS]
 
 
+VARIETE = ["lignees", "genotypes", "distance_fondateur", "distance_paires"]
+
+
+def variete(
+    population: np.ndarray,
+    lineage: np.ndarray,
+    founder: np.ndarray,
+    mask: np.ndarray,
+    rng: np.random.Generator,
+    pairs: int = 1000,
+) -> list[float]:
+    """Variété d'une population, dans l'ordre de ``VARIETE``.
+
+    Ne compte que les poids qui évoluent (``mask``). ``lignees`` : ancêtres du pas 0 qui
+    ont des descendants vivants ; ``genotypes`` : génotypes distincts ; la distance est le
+    nombre de poids qui diffèrent, au fondateur ou entre ``pairs`` paires tirées au hasard.
+    """
+    genotypes = population[:, mask]
+    n = len(genotypes)
+    first, second = rng.integers(n, size=(2, pairs))
+    return [
+        float(len(np.unique(lineage))),
+        float(len(np.unique(genotypes, axis=0))),
+        float((genotypes != founder[mask]).sum(axis=1).mean()),
+        float((genotypes[first] != genotypes[second]).sum(axis=1).mean()),
+    ]
+
+
 def brains(population: np.ndarray) -> np.ndarray:
     """Capteur et cerveau de chaque agent, sans ses éventuels moteurs : ``(N, 4, 4)``."""
     return population[:, : ARCH.d, : ARCH.d]
