@@ -131,7 +131,7 @@ table.brain td span.neg { border-color: var(--ink); color: var(--ink); border-st
 <main>
   <header class="top">
     <h1>Monde 2D des agents SBN</h1>
-    <p class="deck">Une population <strong>réellement mesurée</strong>, rejouée pas à pas : la population <span id="rep">0</span> du régime espace. Chaque point est un cerveau SBN de trois nœuds. Il ingère, se déplace, laisse un déchet toxique là où il mange, et ne perçoit qu'une chose : son énergie vient-elle de monter ?</p>
+    <p class="deck">Une population <strong>réellement mesurée</strong>, rejouée pas à pas : la population <span id="rep">0</span> du régime <span id="regime">espace</span>. <span id="season-note"></span>Chaque point est un cerveau SBN de trois nœuds. Il ingère, se déplace, laisse un déchet toxique là où il mange, et ne perçoit qu'une chose : son énergie vient-elle de monter ?</p>
   </header>
 
   <section class="stage">
@@ -200,7 +200,7 @@ table.brain td span.neg { border-color: var(--ink); color: var(--ink); border-st
   <footer class="rules">
     <p><b>Le monde.</b> Grille torique de <span id="dims">32 × 32</span> cases. La nourriture arrive au hasard, partout au même rythme, jusqu'à 5 unités par case. Le déchet disparaît de 5 % par pas.</p>
     <p><b>Un pas.</b> L'agent se déplace d'une case au hasard si son nœud « bouger » est allumé, puis ingère si son nœud « ingérer » l'est : une unité de nourriture s'il en reste, et un risque de poison qui croît avec le déchet de la case.</p>
-    <p><b>L'énergie.</b> +4 par unité ingérée ; −1 par pas, par ingestion tentée et par déplacement ; −4 par empoisonnement. Mort à 0, division à 20. Aucune cible, aucune note : seule la survie trie.</p>
+    <p><b>L'énergie.</b> +4 par unité ingérée ; −1 par pas, par ingestion tentée et par déplacement ; −4 par empoisonnement. Mort à 0, division à <span id="divide">20</span>. Aucune cible, aucune note : seule la survie trie.</p>
     <p><b>Les scènes.</b> Trois moments de la même population : génotypes tirés au hasard au départ, puis 2 000 et 19 700 pas d'évolution plus tard.</p>
   </footer>
 </main>
@@ -535,7 +535,8 @@ const DATA = /*DONNEES*/null;
     spark("s-well", sc.well, f, C.well);
     spark("s-move", sc.move, f, C.muted);
     spark("s-waste", sc.waste, f, C.waste);
-    $("clock").innerHTML = `pas ${fr.format(sc.raw.start + f)} <span>/ ${fr.format(sc.raw.start + sc.F - 1)}</span>`;
+    const season = sc.raw.summer ? (sc.raw.summer[f] ? " · été" : " · hiver") : "";
+    $("clock").innerHTML = `pas ${fr.format(sc.raw.start + f)} <span>/ ${fr.format(sc.raw.start + sc.F - 1)}${season}</span>`;
     $("seek").value = f;
     drawAgent();
     shown = f;
@@ -583,6 +584,9 @@ const DATA = /*DONNEES*/null;
 
   function start(saved) {
     $("rep").textContent = DATA.replicate;
+    $("regime").textContent = DATA.regime === "saisons" ? "saisons cachées" : "espace";
+    $("divide").textContent = DATA.divide_at;
+    if (DATA.summer) $("season-note").textContent = `La nourriture n'arrive qu'en été (${DATA.summer} pas) et pas en hiver (${DATA.winter} pas) ; l'agent ne perçoit pas la saison. `;
     $("dims").textContent = `${H} × ${W}`;
     $("scenes").innerHTML = DATA.scenes.map((s, i) =>
       `<button type="button" data-scene="${i}" aria-pressed="false">${s.name}<small>${fr.format(s.start)}–${fr.format(s.start + s.frames - 1)}</small></button>`).join("");

@@ -1,6 +1,6 @@
 """Visualisation du monde 2D : rejoue pas à pas une des populations mesurées.
 
-    python experiments/monde_dechet/voir.py    # écrit out/monde_2d.html
+    python experiments/monde_dechet/voir.py [--regime saisons]   # écrit out/monde_2d.html
 
 Resimule la population 0 du régime espace (même graine que ``run.py``), enregistre
 trois scènes de 300 pas et les insère dans ``voir.html``, une page autonome à ouvrir
@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import argparse
 import base64
+import importlib.util
 import json
 from pathlib import Path
 
@@ -20,9 +21,11 @@ from commun import ESPACE, naissance
 from motifs import motif
 
 from simsbn.milieu import ARCH
+from simsbn.monde import Vie
 from simsbn.structure import KINDS, Classifier
 
 HERE = Path(__file__).parent
+RESERVE = HERE.parent / "saisons_reserve" / "run.py"
 SCENES = [("Départ", 0), ("Pas 2 000", 2_000), ("Fin", 19_700)]  # (nom, pas de départ)
 # Octet d'état d'un agent : ce qu'il a fait pendant le pas, et ce qui lui est arrivé.
 SENSOR, EAT, MOVE, HIDDEN, BORN, FED, POISONED = (1 << k for k in range(7))
@@ -39,7 +42,9 @@ def record(vie, frames: int, classify: Classifier) -> dict:
     counts, index, cell, state, energy = [], [], [], [], []
     local: dict[int, int] = {}  # numéro d'agent -> rang dans la scène
     agents, genotypes, matrices = [], {}, []
+    summer = []
     for f in range(frames):
+        summer.append(int(monde.is_summer(vie.t)))
         acted = dict(zip(vie.ident.tolist(), vie.brain.tolist(), strict=True))
         vie.step()
         grid[f] = np.minimum(vie.food, 7) | (np.minimum(vie.waste, 31) << 3)
@@ -68,6 +73,7 @@ def record(vie, frames: int, classify: Classifier) -> dict:
         "frames": frames,
         "grid": encode(grid, np.uint8),
         "counts": counts,
+        "summer": summer,
         "index": encode(index, "<u2"),
         "cell": encode(cell, "<u2"),
         "state": encode(state, np.uint8),
@@ -83,12 +89,33 @@ def record(vie, frames: int, classify: Classifier) -> dict:
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    parser.add_argument("--replicate", type=int, default=0, help="population du régime espace")
+    parser.add_argument(
+        "--regime",
+        choices=("espace", "saisons"),
+        default="espace",
+        help="espace : monde à déchet ; saisons : saisons cachées (2e essai)",
+    )
+    parser.add_argument("--replicate", type=int, default=0, help="population du régime choisi")
     parser.add_argument("--frames", type=int, default=300, help="pas enregistrés par scène")
     parser.add_argument("--seed", type=int, default=0)
     args = parser.parse_args()
 
-    vie = naissance("espace", args.replicate, args.seed)
+    if args.regime == "saisons":
+        spec = importlib.util.spec_from_file_location("saisons_reserve_run", RESERVE)
+        reserve = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(reserve)
+        monde = reserve.REGIMES["saisons"][0]
+        rng = np.random.default_rng(
+            [args.seed, args.replicate, list(reserve.REGIMES).index("saisons"), 4]
+        )
+        vie = Vie(ARCH.random(rng, 300, reserve.BOUND), monde, rng, 0.1, reserve.BOUND)
+        measured_path = RESERVE.parent / "out" / "populations_finales.npz"
+        measured_key = f"saisons_{args.replicate}"
+    else:
+        monde = ESPACE
+        vie = naissance("espace", args.replicate, args.seed)
+        measured_path = HERE / "out" / "populations_finales.npz"
+        measured_key = f"espace_{args.replicate}"
     classify = Classifier()
     scenes = []
     for name, start in SCENES:
@@ -100,18 +127,21 @@ def main():
 
     out = HERE / "out"
     out.mkdir(exist_ok=True)
-    measured = out / "populations_finales.npz"
-    if measured.exists() and vie.t == 20_000:
-        same = np.array_equal(np.load(measured)[f"espace_{args.replicate}"], vie.population)
+    if measured_path.exists() and vie.t == 20_000:
+        same = np.array_equal(np.load(measured_path)[measured_key], vie.population)
         print("population finale identique à celle mesurée par run.py :", "oui" if same else "NON")
         if not same:
             raise SystemExit("la population rejouée n'est pas celle de l'expérience")
 
     data = {
-        "height": ESPACE.height,
-        "width": ESPACE.width,
-        "food_cap": ESPACE.food_cap,
-        "tox": ESPACE.tox,
+        "regime": args.regime,
+        "height": monde.height,
+        "width": monde.width,
+        "food_cap": monde.food_cap,
+        "tox": monde.tox,
+        "divide_at": monde.divide_at,
+        "summer": monde.summer,
+        "winter": monde.winter,
         "replicate": args.replicate,
         "seed": args.seed,
         "nodes": ["capteur", "ingérer", "bouger", "caché"],
