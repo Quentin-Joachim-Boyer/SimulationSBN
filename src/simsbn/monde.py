@@ -46,12 +46,20 @@ class Corps:
 
     Les effets des moteurs de déplacement s'additionnent : nord et sud s'annulent, nord
     et est donnent une diagonale. Chaque moteur allumé coûte.
+
+    ``ticks`` est le nombre de pas d'agent par pas du milieu : le capteur est tenu
+    pendant ces pas, le cerveau et les moteurs se mettent à jour ``ticks`` fois, et
+    l'action est lue à la fin. Avec ``ticks=1``, rien ne change. Ces pas ne coûtent
+    rien de plus : le coût d'un rythme rapide est une question laissée ouverte.
     """
 
     motors: tuple[str, ...] = ()
     delay: bool = True
+    ticks: int = 1
 
     def __post_init__(self):
+        if self.ticks < 1:
+            raise ValueError(f"ticks doit valoir au moins 1, pas {self.ticks}")
         unknown = set(self.motors) - set(ROLES)
         if unknown or len(set(self.motors)) != len(self.motors):
             raise ValueError(f"moteurs inconnus ou répétés : {self.motors}")
@@ -236,7 +244,10 @@ class Vie:
         moves = wander.astype(np.int64)  # nombre de moteurs de déplacement allumés
         for on, _ in pushes:
             moves += on
-        context = self.sensor_prev if self.corps.lagged else self.sensor
+        # Capteur auquel l'action a pu réagir : avec un seul pas d'agent et des moteurs
+        # retardés, celui d'il y a deux pas ; sinon, le dernier connu.
+        reacts_late = self.corps.lagged and self.corps.ticks == 1
+        context = self.sensor_prev if reacts_late else self.sensor
         for key, flags in (("agents", np.ones(n)), ("eat", eat), ("move", moves > 0)):
             self.counts[key] += np.bincount(context, weights=flags, minlength=2)
             self.counts[key + "_season"][int(w.is_summer(self.t))] += flags.sum()
@@ -291,9 +302,10 @@ class Vie:
         self.sensor = (energy > self.energy).astype(np.int64)
         self.energy = energy
         self.fed, self.poisoned = units > 0, poisoned
-        previous = self.brain
-        self.brain = step_brains(self.population, self.sensor, previous)
-        self.motor = read_motors(self.population, previous if self.corps.delay else self.brain)
+        for _ in range(self.corps.ticks):
+            previous = self.brain
+            self.brain = step_brains(self.population, self.sensor, previous)
+            self.motor = read_motors(self.population, previous if self.corps.delay else self.brain)
 
         # 5. Morts, puis divisions sur la case du parent.
         alive = self.energy > 0

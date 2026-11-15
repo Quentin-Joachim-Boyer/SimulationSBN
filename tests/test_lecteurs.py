@@ -135,3 +135,28 @@ def test_corps_rejects_unknown_roles_and_wrong_genotypes():
             corps=Corps(PAIR),
         )
     assert Corps().arch == ARCH and not Corps().lagged and Corps(PAIR).lagged
+
+
+@pytest.mark.parametrize("delay", [True, False])
+@pytest.mark.parametrize("ticks", [1, 2, 4])
+def test_ticks_iterate_the_brain_with_the_sensor_held(ticks, delay):
+    corps = Corps(PAIR, delay=delay, ticks=ticks)
+    population = corps.arch.random(np.random.default_rng(3), 60, 3)
+    vie = Vie(population, CLEAN, np.random.default_rng(4), mutation_rate=0.0, corps=corps)
+    vie.energy[:] = 15  # sans apport, deux pas ne tuent ni ne divisent personne
+    for _ in range(2):
+        brain = vie.brain.copy()
+        idents = vie.ident.copy()
+        vie.step()
+        assert np.array_equal(vie.ident, idents)
+        previous = brain
+        for _ in range(ticks):
+            previous, brain = brain, step_brains(vie.population, vie.sensor, brain)
+        assert np.array_equal(vie.brain, brain)
+        assert np.array_equal(vie.motor, read_motors(vie.population, previous if delay else brain))
+
+
+def test_one_tick_is_the_unchanged_default_and_ticks_must_be_positive():
+    assert Corps(PAIR).ticks == 1
+    with pytest.raises(ValueError):
+        Corps(PAIR, ticks=0)
