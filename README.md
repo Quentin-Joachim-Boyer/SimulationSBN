@@ -100,6 +100,11 @@ Même monde, mais les actions sont portées par des nœuds lecteurs : ils lisent
 et rien ne revient d'eux. Lecture retardée (nœud SBN ordinaire, réaction en deux pas) ou
 immédiate. Journal : `journal/2026-11-15_moteurs-lecteurs.md`.
 
+    python experiments/saisons/run.py  # environ 4 minutes sur 2 cœurs
+
+Saisons cachées : la nourriture n'arrive qu'en été et l'agent ne perçoit pas la saison.
+Journal : `journal/2026-11-15_saisons-cachees.md`.
+
 ## Feuille de route
 
 1. **Noyau et mesures de pluripotence** — fait.
