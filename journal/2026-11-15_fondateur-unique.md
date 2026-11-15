@@ -113,4 +113,79 @@ d'entrée vers lui-même).
 
 ## Résultat
 
-(à compléter après l'exécution)
+Exécuté le 15 novembre (`experiments/fondateur/run.py`, graine 0, 24 populations par
+condition, 20 000 pas, aucune extinction). Valeurs : moyenne ± écart-type entre
+populations, seconde moitié. Figure : `experiments/fondateur/out/fondateur_unique.png`.
+
+| mesure | dir. mu 0 | dir. 0,1 | dir. 0,3 | dir. 1 | neutre 0 | neutre 0,1 | neutre 0,3 | neutre 1 |
+|---|---|---|---|---|---|---|---|---|
+| effectif | 122 ± 14 | 148 ± 22 | 169 ± 8 | 161 ± 2 | 400 | 399 | 400 | 400 |
+| lignées vivantes | 21,8 ± 2,5 | 12,8 ± 7,6 | 3,0 ± 3,4 | 1,02 ± 0,09 | 1,7 ± 0,6 | 1,8 ± 0,5 | 1,7 ± 0,6 | 1,8 ± 0,6 |
+| génotypes distincts | 1 | 39 ± 6 | 74 ± 5 | 160 ± 2 | 1 | 99 ± 1 | 200 ± 1 | 399 ± 1 |
+| distance au fondateur (sur 27) | 0 | 13,5 ± 1,6 | 20,2 ± 1,3 | 22,8 ± 0,7 | 0 | 16,6 ± 1,1 | 22,6 ± 0,7 | 23,1 ± 0,2 |
+| distance entre paires | 0 | 11,3 ± 4,3 | 11,4 ± 2,8 | 16,4 ± 0,8 | 0 | 14,2 ± 1,1 | 19,3 ± 0,5 | 21,9 ± 0,1 |
+| persistance | 1,00 | 0,90 ± 0,10 | 0,75 ± 0,12 | 0,82 ± 0,02 | 0,65 ± 0,12 | 0,89 ± 0,06 | 0,89 ± 0,02 | 0,90 ± 0,01 |
+| dépendance (points) | 0,0 | 0,4 ± 6,5 | 26,3 ± 31,8 | 7,5 ± 7,5 | 26,7 ± 8,7 | −11,1 ± 8,5 | −19,1 ± 4,3 | −17,4 ± 2,6 |
+| PC de 1 nœud (%) | 0 | 8,2 ± 13,8 | 6,8 ± 9,0 | 4,2 ± 1,9 | 0 | 7,3 ± 12,5 | 4,4 ± 3,1 | 6,3 ± 2,1 |
+| PC de 2 nœuds (%) | 0 | 4,4 ± 10,4 | 9,3 ± 18,4 | 4,6 ± 2,8 | 0 | 6,7 ± 8,0 | 5,7 ± 4,4 | 6,4 ± 2,1 |
+| PTBN (%) | 0 | 13,5 ± 17,4 | 11,0 ± 12,5 | 8,5 ± 5,7 | 0 | 8,8 ± 10,7 | 6,5 ± 3,6 | 8,9 ± 2,1 |
+
+Hypothèse par hypothèse :
+
+1. **Contrôle mu = 0 : tenu.** Un seul génotype à tout relevé, distance nulle ;
+   dépendance −0,03 puis 0,00 point, persistance 0,998 puis 1,00.
+2. **Variété : tenue.** Génotypes distincts et distances croissent avec mu dans les deux
+   régimes. Mais le nombre de génotypes suit surtout l'effectif (≈ 26 % des agents à
+   mu = 0,1, tous distincts à mu = 1, dans les deux régimes) : il ne compare pas les
+   régimes. Les distances sont grandes : à mu = 0,1 déjà, la moitié des 27 poids diffère du
+   fondateur et deux agents diffèrent de 11 poids. Un génotype aléatoire différerait de
+   27 × 6/7 = 23,1 poids : à mu = 1 les deux régimes y sont (directions 22,8 contre
+   neutre 23,1, p = 0,02, non retenu). **La variété ne manquait donc pas à 0,1 sur
+   20 000 pas** : la prémisse de l'expérience (« peu de variété ») est fausse dans la
+   seconde moitié. Directions reste plus proche du fondateur que neutre à 0,1 et 0,3
+   (p < 0,0001), mais les effectifs diffèrent (150 contre 400), ce qui suffit peut-être.
+3. **Lignées : réfutée dans le sens écrit, et le résultat est plus intéressant.** Sans
+   mutation, directions **conserve** ses lignées : 22 des 300 ancêtres ont encore des
+   descendants en seconde moitié, et la courbe est plate après l'effondrement initial
+   (300 → ≈ 25 dans les premiers pas, effectif 300 → 125). Neutre tombe à 1,7 (dérive).
+   Avec mutation, directions perd ses lignées d'autant plus vite que mu est grand :
+   12,8 (plus que neutre, p < 0,0001), 3,0 (p = 0,07), 1,02 (moins que neutre,
+   p < 0,0001). Lecture proposée, non testée : des clones qui marchent droit ne se
+   remplacent pas entre eux (chaque lignée garde sa bande), et ce sont les mutants
+   avantageux qui balaient les autres lignées.
+4. **Comportement : hypothèse précisée réfutée.** La persistance de directions ne reste
+   pas à 1 : 0,90, 0,75, 0,82 (chacune différente de mu = 0, p < 0,0001), et elle est
+   plus **basse** que celle de neutre à mu = 0,3 et 1 (p < 0,0001), pas plus haute. Dans
+   le même temps l'effectif monte (122 → 148, 169, 161 ; p < 0,0001 contre mu = 0) : la
+   sélection s'éloigne de la ligne droite pure du fondateur et la population y gagne. La
+   dépendance au capteur apparaît à mu = 0,3 (26 points, très dispersée entre populations,
+   encore en hausse à 20 000 pas : 37 points à la fin) et à mu = 1 (7,5), pas à 0,1.
+   À mu = 1 l'effectif atteint vite un plateau (≈ 160) plus bas que la fin de la courbe à
+   mu = 0,3 (≈ 175, encore en hausse) : compatible avec une charge mutationnelle, non testé
+   directement.
+5. **Structure : résultat négatif, comme attendu.** Aucun enrichissement des parties
+   contrôle internes ni des PTBN par rapport à neutre. À mu = 1, les PC de 1 nœud sont
+   moins fréquentes dans directions (4,2 % contre 6,3 %, p = 0,0007 ; loi uniforme 6,0 %).
+
+## Limites constatées
+
+- **Le régime neutre n'est pas un nul propre pour le comportement.** Le même génotype,
+  sans mutation, a une persistance de 1,00 et une dépendance de 0 dans directions, mais
+  0,65 et 27 points dans neutre : la persistance et la dépendance dépendent de ce que le
+  capteur reçoit, donc du monde. Neutre reste le nul de la dérive (lignées, distances,
+  structure). Pour le comportement, la comparaison propre ici est directions à mu > 0
+  contre directions à mu = 0. Cette limite vaut aussi pour les comparaisons de
+  dépendance « régime contre neutre » des expériences précédentes.
+- Un seul fondateur, retenu par un filtre de viabilité qui a éliminé les six premiers
+  candidats ; il marchait déjà droit. Rien ne dit qu'un autre fondateur donnerait les
+  mêmes courbes.
+- La dépendance (mu = 0,3) et l'effectif (mu = 0,1 et 0,3) montent encore à 20 000 pas.
+- mu est borné à 1 (une mutation par naissance au plus).
+- Beaucoup de tests non corrigés.
+
+## Suites possibles
+
+- Un deuxième et un troisième fondateur, pour savoir ce qui tient au génotype de départ.
+- Tester la lecture « les clones gardent chacun leur bande » : mu = 0 dans le monde
+  mélangé (sans espace) devrait perdre ses lignées comme neutre.
+- Durée plus longue à mu = 0,3 (rien n'est stabilisé).
