@@ -29,6 +29,7 @@ HERE = Path(__file__).parent
 RESERVE = HERE.parent / "saisons_reserve" / "run.py"
 DIRECTIONS = HERE.parent / "directions" / "run.py"
 FONDATEUR = HERE.parent / "fondateur"
+SAISONS_DIR = HERE.parent / "saisons_directions" / "run.py"
 RATES = (0.0, 0.1, 0.3, 1.0)  # ceux de experiments/fondateur/run.py
 SCENES = [("Départ", 0), ("Pas 2 000", 2_000), ("Fin", 19_700)]  # (nom, pas de départ)
 # Octet d'état d'un agent : ce qu'il a fait pendant le pas, et ce qui lui est arrivé.
@@ -106,7 +107,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument(
         "--regime",
-        choices=("espace", "saisons", "directions", "fondateur"),
+        choices=("espace", "saisons", "directions", "fondateur", "saisons-directions"),
         default="espace",
         help="espace : monde à déchet ; saisons : saisons cachées ; directions : cinq moteurs ; "
         "fondateur : cinq moteurs, 300 clones au départ",
@@ -139,6 +140,24 @@ def main():
                     if (row["regime"], float(row["mu"]), int(row["replicate"]), row["step"]) == (
                         "directions", args.mu, args.replicate, "20000"):  # fmt: skip
                         expected = int(float(row["effectif"]))
+    elif args.regime == "saisons-directions":
+        spec = importlib.util.spec_from_file_location("saisons_directions_run", SAISONS_DIR)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        monde, corps = module.SAISONS, module.CORPS
+        rng = np.random.default_rng([args.seed, args.replicate, 0, 8])  # régime « saisons »
+        args.mu = 0.5
+        pop = corps.arch.random(rng, 300, module.BOUND)
+        vie = Vie(pop, monde, rng, args.mu, module.BOUND, corps)
+        measured_path = SAISONS_DIR.parent / "out" / "absent.npz"
+        nodes = ["capteur", "c1", "c2", "c3", *corps.motors]
+        series = SAISONS_DIR.parent / "out" / "saisons_directions.csv"
+        if series.exists():
+            with open(series) as handle:
+                for row in csv.DictReader(handle):
+                    if (row["regime"], int(row["replicate"]), row["year"]) == (
+                        "saisons", args.replicate, "199"):  # fmt: skip
+                        expected = int(float(row["effectif_hiver"]))
     elif args.regime == "directions":
         spec = importlib.util.spec_from_file_location("directions_run", DIRECTIONS)
         directions = importlib.util.module_from_spec(spec)
