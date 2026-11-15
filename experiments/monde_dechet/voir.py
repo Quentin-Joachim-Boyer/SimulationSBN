@@ -26,6 +26,7 @@ from simsbn.structure import KINDS, Classifier
 
 HERE = Path(__file__).parent
 RESERVE = HERE.parent / "saisons_reserve" / "run.py"
+DIRECTIONS = HERE.parent / "directions" / "run.py"
 SCENES = [("Départ", 0), ("Pas 2 000", 2_000), ("Fin", 19_700)]  # (nom, pas de départ)
 # Octet d'état d'un agent : ce qu'il a fait pendant le pas, et ce qui lui est arrivé.
 SENSOR, EAT, MOVE, HIDDEN, BORN, FED, POISONED = (1 << k for k in range(7))
@@ -45,13 +46,22 @@ def record(vie, frames: int, classify: Classifier) -> dict:
     summer = []
     for f in range(frames):
         summer.append(int(monde.is_summer(vie.t)))
-        acted = dict(zip(vie.ident.tolist(), vie.brain.tolist(), strict=True))
+        motors = vie.corps.motors
+        if motors:  # actions portées par les moteurs : ce qu'ils valaient au début du pas
+            eat_j = motors.index("ingérer")
+            ways = [j for j, name in enumerate(motors) if name != "ingérer"]
+            acted = {
+                ident: (int(row[eat_j]), 0, int(any(row[j] for j in ways)))
+                for ident, row in zip(vie.ident.tolist(), vie.motor.tolist(), strict=True)
+            }
+        else:
+            acted = dict(zip(vie.ident.tolist(), vie.brain.tolist(), strict=True))
         vie.step()
         grid[f] = np.minimum(vie.food, 7) | (np.minimum(vie.waste, 31) << 3)
         counts.append(len(vie))
         for k, ident in enumerate(vie.ident.tolist()):
             if ident not in local:
-                key = tuple(vie.population[k][:, 1:].ravel().tolist())
+                key = tuple(vie.population[k][: ARCH.d, 1:].ravel().tolist())
                 if key not in genotypes:
                     genotypes[key] = len(genotypes)
                     matrices.append(vie.population[k])
@@ -60,6 +70,8 @@ def record(vie, frames: int, classify: Classifier) -> dict:
             bits = SENSOR * int(vie.sensor[k])
             if ident in acted:
                 e, m, h = acted[ident]
+                if motors:  # déplacement net : nord et sud allumés ensemble s'annulent
+                    m = int(vie.last_delta[k].any())
                 bits |= EAT * e | MOVE * m | HIDDEN * h
             else:
                 bits |= BORN
@@ -82,8 +94,8 @@ def record(vie, frames: int, classify: Classifier) -> dict:
         "lineage": [a[1] for a in agents],
         "genotype": [a[2] for a in agents],
         "weights": [list(key) for key in genotypes],
-        "flags": classify.flags(matrices).astype(int).tolist(),
-        "motifs": [[motif(W, 0), motif(W, 1)] for W in matrices],
+        "flags": classify.flags(matrices[:, : ARCH.d, : ARCH.d]).astype(int).tolist(),
+        "motifs": None if motors else [[motif(W, 0), motif(W, 1)] for W in matrices],
     }
 
 
@@ -91,16 +103,31 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument(
         "--regime",
-        choices=("espace", "saisons"),
+        choices=("espace", "saisons", "directions"),
         default="espace",
-        help="espace : monde à déchet ; saisons : saisons cachées (2e essai)",
+        help="espace : monde à déchet ; saisons : saisons cachées ; directions : cinq moteurs",
     )
     parser.add_argument("--replicate", type=int, default=0, help="population du régime choisi")
     parser.add_argument("--frames", type=int, default=300, help="pas enregistrés par scène")
     parser.add_argument("--seed", type=int, default=0)
     args = parser.parse_args()
 
-    if args.regime == "saisons":
+    nodes = ["capteur", "ingérer", "bouger", "caché"]
+    if args.regime == "directions":
+        spec = importlib.util.spec_from_file_location("directions_run", DIRECTIONS)
+        directions = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(directions)
+        monde = directions.REGIMES["directions"][0]
+        corps = directions.CORPS
+        rng = np.random.default_rng(
+            [args.seed, args.replicate, list(directions.REGIMES).index("directions"), 6]
+        )
+        pop = corps.arch.random(rng, 300, directions.BOUND)
+        vie = Vie(pop, monde, rng, 0.1, directions.BOUND, corps)
+        measured_path = DIRECTIONS.parent / "out" / "populations_finales.npz"
+        measured_key = f"directions_{args.replicate}"
+        nodes = ["capteur", "c1", "c2", "c3", *corps.motors]
+    elif args.regime == "saisons":
         spec = importlib.util.spec_from_file_location("saisons_reserve_run", RESERVE)
         reserve = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(reserve)
@@ -144,7 +171,8 @@ def main():
         "winter": monde.winter,
         "replicate": args.replicate,
         "seed": args.seed,
-        "nodes": ["capteur", "ingérer", "bouger", "caché"],
+        "nodes": nodes,
+        "ncols": len(nodes) - 1,
         "kinds": KINDS,
         "brain": ARCH.n_brain,
         "scenes": scenes,

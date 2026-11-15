@@ -131,7 +131,7 @@ table.brain td span.neg { border-color: var(--ink); color: var(--ink); border-st
 <main>
   <header class="top">
     <h1>Monde 2D des agents SBN</h1>
-    <p class="deck">Une population <strong>réellement mesurée</strong>, rejouée pas à pas : la population <span id="rep">0</span> du régime <span id="regime">espace</span>. <span id="season-note"></span>Chaque point est un cerveau SBN de trois nœuds. Il ingère, se déplace, laisse un déchet toxique là où il mange, et ne perçoit qu'une chose : son énergie vient-elle de monter ?</p>
+    <p class="deck">Une population <strong>réellement mesurée</strong>, rejouée pas à pas : la population <span id="rep">0</span> du régime <span id="regime">espace</span>. <span id="season-note"></span><span id="intro-text">Chaque point est un cerveau SBN de trois nœuds. Il ingère, se déplace, laisse un déchet toxique là où il mange, et ne perçoit qu'une chose : son énergie vient-elle de monter ?</span></p>
   </header>
 
   <section class="stage">
@@ -186,7 +186,7 @@ table.brain td span.neg { border-color: var(--ink); color: var(--ink); border-st
         <div class="chips" id="chips"></div>
         <h3>Son activité pendant la scène</h3>
         <div class="strip">
-          <ol aria-hidden="true"><li>Va bien</li><li>Ingère</li><li>Se déplace</li><li>Nœud caché</li><li>Nourri</li><li>Empoisonné</li></ol>
+          <ol aria-hidden="true" id="strip-labels"><li>Va bien</li><li>Ingère</li><li>Se déplace</li><li>Nœud caché</li><li>Nourri</li><li>Empoisonné</li></ol>
           <canvas id="strip" aria-label="Activité de l'agent suivi à chaque pas de la scène. Cliquer pour aller à un pas."></canvas>
         </div>
         <h3>Son cerveau : poids de la ligne vers la colonne</h3>
@@ -199,8 +199,8 @@ table.brain td span.neg { border-color: var(--ink); color: var(--ink); border-st
 
   <footer class="rules">
     <p><b>Le monde.</b> Grille torique de <span id="dims">32 × 32</span> cases. La nourriture arrive au hasard, partout au même rythme, jusqu'à 5 unités par case. Le déchet disparaît de 5 % par pas.</p>
-    <p><b>Un pas.</b> L'agent se déplace d'une case au hasard si son nœud « bouger » est allumé, puis ingère si son nœud « ingérer » l'est : une unité de nourriture s'il en reste, et un risque de poison qui croît avec le déchet de la case.</p>
-    <p><b>L'énergie.</b> +4 par unité ingérée ; −1 par pas, par ingestion tentée et par déplacement ; −4 par empoisonnement. Mort à 0, division à <span id="divide">20</span>. Aucune cible, aucune note : seule la survie trie.</p>
+    <p id="step-text"><b>Un pas.</b> L'agent se déplace d'une case au hasard si son nœud « bouger » est allumé, puis ingère si son nœud « ingérer » l'est : une unité de nourriture s'il en reste, et un risque de poison qui croît avec le déchet de la case.</p>
+    <p id="energy-text"><b>L'énergie.</b> +4 par unité ingérée ; −1 par pas, par ingestion tentée et par déplacement ; −4 par empoisonnement. Mort à 0, division à <span id="divide">20</span>. Aucune cible, aucune note : seule la survie trie.</p>
     <p><b>Les scènes.</b> Trois moments de la même population : génotypes tirés au hasard au départ, puis 2 000 et 19 700 pas d'évolution plus tard.</p>
   </footer>
 </main>
@@ -504,21 +504,22 @@ const DATA = /*DONNEES*/null;
         bits & BIT.POISONED ? chip("Empoisonné", "poison") : "",
       ].join("");
     }
-    const g = raw.genotype[a], weights = raw.weights[g], n = DATA.brain;
+    const g = raw.genotype[a], weights = raw.weights[g], n = DATA.brain, nc = DATA.ncols || n;
     let html = "<thead><tr><td></td>";
-    for (let j = 1; j <= n; j++) html += `<th scope="col">${DATA.nodes[j]}</th>`;
+    for (let j = 1; j <= nc; j++) html += `<th scope="col">${DATA.nodes[j]}</th>`;
     html += "</tr></thead><tbody>";
     for (let i = 0; i <= n; i++) {
       html += `<tr><th scope="row">${DATA.nodes[i]}</th>`;
-      for (let j = 0; j < n; j++) {
-        const v = weights[i * n + j];
+      for (let j = 0; j < nc; j++) {
+        const v = weights[i * nc + j];
         html += `<td><span class="${v > 0 ? "pos" : v < 0 ? "neg" : ""}">${sign(v)}</span></td>`;
       }
       html += "</tr>";
     }
     $("brain").innerHTML = html + "</tbody>";
-    const m = raw.motifs[g], word = (s) => (s === "variable" ? "selon l'état de départ" : s);
-    $("motif").innerHTML = `Nœud « bouger », ingestion allumée : <b>${word(m[0])}</b> quand le capteur vaut 0, <b>${word(m[1])}</b> quand il vaut 1.`;
+    const m = raw.motifs && raw.motifs[g], word = (s) => (s === "variable" ? "selon l'état de départ" : s);
+    if (!m) $("motif").textContent = "Les cinq moteurs lisent les trois nœuds du cerveau, jamais le capteur : un moteur s'allume si la somme pondérée de ce qu'il lit est strictement positive.";
+    else $("motif").innerHTML = `Nœud « bouger », ingestion allumée : <b>${word(m[0])}</b> quand le capteur vaut 0, <b>${word(m[1])}</b> quand il vaut 1.`;
     $("flags").innerHTML = DATA.kinds.map((kind, i) => `<li><span>${KIND_LABELS[kind] || kind}</span><b>${raw.flags[g][i] ? "oui" : "non"}</b></li>`).join("");
     drawStrip();
   }
@@ -584,8 +585,15 @@ const DATA = /*DONNEES*/null;
 
   function start(saved) {
     $("rep").textContent = DATA.replicate;
-    $("regime").textContent = DATA.regime === "saisons" ? "saisons cachées" : "espace";
+    $("regime").textContent = { saisons: "saisons cachées", directions: "directions absolues" }[DATA.regime] || "espace";
     $("divide").textContent = DATA.divide_at;
+    if (DATA.regime === "directions") {
+      $("intro-text").textContent = "Chaque point est un agent à capteur d'un bit et à cerveau de trois nœuds sans étiquette, lus par cinq moteurs : ingérer, et quatre directions absolues dont les effets s'additionnent. Il laisse un déchet toxique là où il mange, et ne perçoit qu'une chose : son énergie vient-elle de monter ? Les cerveaux réagissent en deux pas d'agent par pas du milieu.";
+      $("step-text").innerHTML = "<b>Un pas.</b> Les moteurs allumés au pas précédent agissent : l'agent se déplace de la somme des directions allumées (nord et sud s'annulent), puis ingère si le moteur « ingérer » l'est : une unité de nourriture s'il en reste, et un risque de poison qui croît avec le déchet de la case. Pendant ce temps, le cerveau et les moteurs se mettent à jour deux fois.";
+      $("energy-text").innerHTML = `<b>L'énergie.</b> +4 par unité ingérée ; −1 par pas, par ingestion tentée et par moteur de direction allumé (même si les directions s'annulent) ; −4 par empoisonnement. Mort à 0, division à <span id="divide">${DATA.divide_at}</span>. Aucune cible, aucune note : seule la survie trie.`;
+      document.querySelector("#strip-labels li:nth-child(3)").textContent = "Se déplace (net)";
+      document.querySelector("#strip-labels li:nth-child(4)").textContent = "Direction allumée";
+    }
     if (DATA.summer) $("season-note").textContent = `La nourriture n'arrive qu'en été (${DATA.summer} pas) et pas en hiver (${DATA.winter} pas) ; l'agent ne perçoit pas la saison. `;
     $("dims").textContent = `${H} × ${W}`;
     $("scenes").innerHTML = DATA.scenes.map((s, i) =>
