@@ -122,4 +122,72 @@ contre le neutre (structure). Beaucoup de tests, non corrigés.
 
 ## Résultat
 
-(à compléter après l'exécution)
+Exécuté le 17 novembre (`experiments/energie/run.py`, graine 0, 24 populations par
+régime, 20 000 pas, 16 minutes ; aucune extinction). Moyenne ± écart-type entre
+populations, seconde moitié. Figure : `experiments/energie/out/energie.png`.
+
+| mesure | témoin | recyclage | conservation | diffusion | accidents | cadavres | neutre |
+|---|---|---|---|---|---|---|---|
+| effectif | 183 ± 5 | 253 ± 4 | 349 ± 7 | 201 ± 6 | 158 ± 6 | 162 ± 6 | 400 |
+| nourriture par case | 2,72 | 3,07 | 3,93 | 2,66 | 3,09 | 3,07 | 5 |
+| déchet par case | 2,86 | 4,12 | 6,25 | 3,22 | 2,53 | 2,60 | 0 |
+| énergie dépensée par pas | 585 | 844 | 1 279 | 660 | 501 | 514 | 800 |
+| empoisonnés (% des repas tentés) | 13,9 | 21,9 | 32,2 | 17,3 | 13,5 | 14,3 | 0 |
+| bouger, capteur à 0 / à 1 (%) | 95 / 52 | 95 / 24 | 94 / 9 | 94 / 46 | 94 / 52 | 94 / 47 | 60 / 77 |
+| dépendance au capteur (points) | 43 ± 31 | 72 ± 19 | 85 ± 15 | 49 ± 16 | 42 ± 27 | 48 ± 20 | −17 |
+| persistance | 0,64 ± 0,21 | 0,56 ± 0,08 | 0,48 ± 0,10 | 0,61 ± 0,11 | 0,64 ± 0,14 | 0,64 ± 0,11 | 0,90 |
+| PC de 1 nœud, poids (%) | 4,2 | 3,2 | 5,9 | 2,5 | 2,7 | 1,7 | 6,4 |
+| PC de 2 nœuds, poids (%) | 2,9 | 5,9 | 3,0 | 4,3 | 3,4 | 1,4 | 4,8 |
+| PTBN (%) | 9,7 | 6,4 | 6,9 | 6,4 | 7,8 | 3,9 | 8,9 |
+
+Tests contre le témoin (p bilatéral) : recyclage, déplacement à capteur 1 p = 0,0005,
+dépendance p = 0,0006, persistance p = 0,105 ; conservation, déplacement à capteur 1 et
+dépendance p < 0,0001, persistance p = 0,0018 ; diffusion, accidents, cadavres :
+p ≥ 0,29 sur tout le comportement ; structure : p ≥ 0,08 pour toutes les variantes.
+L'effectif diffère du témoin dans toutes (p < 0,0001).
+
+1. **Bilan : tenu.** Aucune extinction ; l'énergie totale de la conservation vaut 26 480
+   aux 4 800 relevés (24 populations × 200 fenêtres).
+2. **Recyclage : le comportement change, mais pas comme prévu.** La persistance baisse un
+   peu (0,56 contre 0,64) sans être significative (p = 0,105) : la prédiction écrite n'est
+   pas confirmée. Ce qui change, c'est que les agents nourris restent : ils ne bougent plus
+   que 24 % du temps quand le capteur vaut 1, contre 52 % (p = 0,0005), et la dépendance
+   monte à 72 points (p = 0,0006). La clause de réfutation n'est pas remplie.
+3. **Conservation : hypothèse réfutée.** J'avais prédit que seule la démographie
+   changerait. Le comportement change le plus de toutes les variantes : agents nourris
+   immobiles à 91 % (9 % de déplacement à capteur 1), dépendance 85 points, persistance
+   0,48 (p < 0,0001 ; 0,0018). Mon raisonnement oubliait que, sans perte au plafond, le
+   flux de nourriture est bien plus fort : il arrive environ 320 unités par pas (la
+   dépense, 1 279, divisée par 4) contre environ 146 gardées dans le témoin, et les cases
+   restent plus pleines (3,9 contre 2,7).
+4. **Diffusion : tenue.** Aucune différence de comportement (p ≥ 0,40) ; seul l'effectif
+   monte un peu (201 contre 183).
+5. **Cadavres contre accidents : tenue (résultat négatif).** Test calculé après coup, comme
+   prévu par l'hypothèse : effectif 162 contre 158 (p = 0,019), comportement et structure
+   indistincts (p ≥ 0,12). Les accidents seuls ne changent rien non plus au comportement
+   du témoin (p ≥ 0,38).
+6. **Structure : tenue, aucune PC ni PTBN enrichie.** Contre le témoin, p ≥ 0,08 partout.
+   Contre le neutre, les seules différences à p < 0,01 sont des **appauvrissements**, tous
+   dans le régime cadavres : PC de 1 nœud 1,7 % contre 6,4 % (p < 0,0001), PC de 2 nœuds
+   1,4 % contre 4,8 % (p = 0,0001), PTBN 3,9 % contre 8,9 % (p = 0,0075). Comme les
+   cadavres ne se distinguent pas des accidents (p ≥ 0,12), je ne l'attribue pas aux
+   cadavres. Le témoin ne se distingue pas encore du neutre à 20 000 pas (p ≥ 0,22),
+   comme anticipé.
+
+Sans prédiction, lecture après coup (non testée, 6 régimes seulement) : la dépendance au
+capteur suit la richesse du monde. Classés par nourriture par case et énergie dépensée par
+pas, les régimes vont du témoin, des accidents et de la diffusion (dépendance 42 à 49) au
+recyclage (72) puis à la conservation (85). Une lecture possible : quand les cases restent
+riches, rester sur place tant qu'on mange paie, malgré un empoisonnement plus fréquent
+(22 % et 32 % des repas). Ce que les variantes changent d'abord, c'est donc la quantité de
+nourriture, pas sa disposition. Pour séparer les deux, il faudrait comparer chaque
+variante à un témoin d'apport égal.
+
+## Limites
+
+Une graine ; la dépendance monte encore en seconde moitié dans tous les régimes sélectifs
+(de 3 à 14 points par 10 000 pas) ; les variantes changent le flux de nourriture en même
+temps que sa disposition (voir ci-dessus) ; un seul neutre pour toutes les variantes ;
+dispersion énorme de la structure entre populations ; beaucoup de tests non corrigés ;
+l'hypothèse 5 a été testée par un calcul ajouté après l'exécution (prévu dans
+l'hypothèse, absent du script).
