@@ -118,6 +118,27 @@ class Monde:
     neutral: bool = False
     summer: int | None = None  # durée d'un été en pas ; None : pas de saisons
     winter: int = 0  # durée d'un hiver ; la nourriture n'arrive qu'en été
+    # Variantes du flux d'énergie (journal/2026-11-17_energie-milieu.md). L'unité est celle
+    # de l'énergie des agents ; une unité de nourriture en vaut ``gain``. Le déchet n'en
+    # porte pas.
+    recyclage: float = 0.0  # part du déchet qui disparaît et redevient nourriture sur sa case
+    conservation: bool = False  # rien n'entre (``inflow`` ignoré) : toute énergie perdue
+    #   (dépenses, cadavres, débordements) revient en nourriture sur des cases au hasard
+    diffusion: float = 0.0  # probabilité par pas qu'une unité de nourriture passe à côté
+    accident: float = 0.0  # probabilité par pas qu'un agent meure, quelle que soit son énergie
+    cadavres: bool = False  # un mort par accident laisse son énergie en nourriture sur sa case
+
+    def __post_init__(self):
+        for name in ("recyclage", "diffusion", "accident"):
+            if not 0.0 <= getattr(self, name) <= 1.0:
+                raise ValueError(f"{name} doit être entre 0 et 1")
+        variants = self.recyclage or self.conservation or self.diffusion or self.accident
+        if self.neutral and variants:
+            raise ValueError("le régime neutre ne se combine pas avec une variante d'énergie")
+        if self.conservation and self.recyclage:
+            raise ValueError("le recyclage crée de l'énergie : incompatible avec la conservation")
+        if self.cadavres and not self.accident:
+            raise ValueError("sans accident, un mort n'a plus d'énergie à laisser")
 
     @property
     def cells(self) -> int:
@@ -182,8 +203,62 @@ class Vie:
             self.motor = read_motors(self.population, self.brain)
         self.food = np.full(monde.cells, monde.food_cap, dtype=np.int64)
         self.waste = np.zeros(monde.cells, dtype=np.int64)
+        # Énergie perdue en attente de retour au milieu (conservation seulement), et bilan
+        # cumulé depuis le départ : ``entree`` et ``sortie`` traversent les bords du système,
+        # ``depense`` est ce que les agents ont payé (sorti ou rendu au milieu).
+        self.pool = 0
+        self.bilan = {"entree": 0, "sortie": 0, "depense": 0}
         self.t = 0
         self._reset_counts()
+
+    def energie_totale(self) -> int:
+        """Énergie des agents, de la nourriture des cases et de la réserve.
+
+        À chaque pas, sa variation est exactement ``entree - sortie`` (bilan) ; elle est
+        constante avec ``conservation``.
+        """
+        return int(self.energy.sum()) + self.monde.gain * int(self.food.sum()) + self.pool
+
+    def _lose(self, amount: int) -> None:
+        """Énergie qui quitte les agents ou le milieu : perdue, ou gardée pour revenir."""
+        if self.monde.conservation:
+            self.pool += int(amount)
+        else:
+            self.bilan["sortie"] += int(amount)
+
+    def _add_food(self, units: np.ndarray, external: bool) -> None:
+        """Ajoute de la nourriture aux cases, plafonnée. Ce qui déborde n'est pas ajouté.
+
+        ``external`` : l'énergie vient de hors du système (apport, recyclage) et ce qui
+        déborde n'y est jamais entré ; sinon elle vient du système (réserve, cadavre) et
+        ce qui déborde est perdu (ou rendu à la réserve).
+        """
+        w = self.monde
+        kept = np.minimum(self.food + units, w.food_cap)
+        added = int((kept - self.food).sum())
+        if external:
+            self.bilan["entree"] += w.gain * added
+        else:
+            self._lose(w.gain * (int(units.sum()) - added))
+        self.food = kept
+
+    def _diffuse(self) -> None:
+        """Chaque unité de nourriture part vers une case voisine avec la probabilité donnée.
+
+        Une unité qui irait sur une case pleine reste où elle est : la diffusion ne crée ni
+        ne détruit de nourriture, et aucune case ne dépasse le plafond. Les quatre
+        directions sont traitées dans un ordre tiré au hasard à chaque pas.
+        """
+        w, rng = self.monde, self.rng
+        leaving = rng.binomial(self.food, w.diffusion)
+        moves = rng.multinomial(leaving, [0.25] * len(STEPS))  # (cases, 4), dans l'ordre de STEPS
+        food = self.food.reshape(w.height, w.width).copy()
+        for k in rng.permutation(len(STEPS)):
+            shift = tuple(STEPS[k])
+            room = np.roll(w.food_cap - food, (-shift[0], -shift[1]), axis=(0, 1))  # à l'arrivée
+            moved = np.minimum(moves[:, k].reshape(w.height, w.width), room)
+            food = food - moved + np.roll(moved, shift, axis=(0, 1))
+        self.food = food.ravel()
 
     def __len__(self) -> int:
         return len(self.population)
@@ -195,7 +270,17 @@ class Vie:
         names = ("agents", "eat", "move", "agents_season", "eat_season", "move_season")
         self.counts = {key: np.zeros(2) for key in names}
         self.counts |= dict.fromkeys(
-            ("served", "poisoned", "births", "deaths", "steps", "persist_sum", "persist_n"), 0
+            (
+                "served",
+                "poisoned",
+                "births",
+                "deaths",
+                "accidents",
+                "steps",
+                "persist_sum",
+                "persist_n",
+            ),
+            0,
         )
 
     def stats(self) -> dict[str, float]:
@@ -213,6 +298,8 @@ class Vie:
                 "servies": c["served"] / c["eat"].sum() if c["eat"].sum() else np.nan,
                 "empoisonnees": c["poisoned"] / c["eat"].sum() if c["eat"].sum() else np.nan,
                 "naissances": c["births"] / max(c["steps"], 1),
+                "morts": c["deaths"] / max(c["steps"], 1),
+                "accidents": c["accidents"] / max(c["steps"], 1),
                 "persistance": c["persist_sum"] / c["persist_n"] if c["persist_n"] else np.nan,
             }
             eat, move = c["eat_season"] / c["agents_season"], c["move_season"] / c["agents_season"]
@@ -259,9 +346,20 @@ class Vie:
 
         # 1. Le milieu : arrivée de nourriture, disparition de déchet.
         if not w.neutral:
-            arrivals = rng.poisson(w.inflow / w.cells if summer else 0.0, size=w.cells)
-            self.food = np.minimum(self.food + arrivals, w.food_cap)
-            self.waste = rng.binomial(self.waste, 1 - w.decay)
+            if w.diffusion:
+                self._diffuse()
+            if w.conservation:  # la réserve revient en nourriture, sur des cases au hasard
+                placed = self.pool // w.gain
+                self.pool -= w.gain * placed
+                arrivals = np.bincount(rng.integers(0, w.cells, placed), minlength=w.cells)
+                self._add_food(arrivals, external=False)  # ce qui déborde retourne à la réserve
+            else:
+                arrivals = rng.poisson(w.inflow / w.cells if summer else 0.0, size=w.cells)
+                self._add_food(arrivals, external=True)
+            remaining = rng.binomial(self.waste, 1 - w.decay)
+            if w.recyclage:  # une part du déchet disparu redevient nourriture sur sa case
+                self._add_food(rng.binomial(self.waste - remaining, w.recyclage), external=True)
+            self.waste = remaining
 
         # 2. Déplacement sur le tore : une case voisine au hasard pour « bouger », plus la
         #    somme des poussées des moteurs de direction.
@@ -310,7 +408,13 @@ class Vie:
 
         # 4. Énergie, capteur, puis cerveau et moteurs. Un moteur retardé lit le cerveau
         #    d'avant la mise à jour, comme tout nœud d'un SBN synchrone.
-        energy = self.energy + w.gain * units - cost
+        if w.neutral:  # la nourriture du neutre vient de hors des cases
+            self.bilan["entree"] += w.gain * int(units.sum())
+        before = self.energy + w.gain * units
+        energy = before - cost
+        spent = int(np.minimum(cost, before).sum())  # un mourant ne paie que ce qu'il a
+        self.bilan["depense"] += spent
+        self._lose(spent)
         self.sensor_prev = self.sensor
         self.sensor = (energy > self.energy).astype(np.int64)
         self.energy = energy
@@ -322,6 +426,17 @@ class Vie:
 
         # 5. Morts, puis divisions sur la case du parent.
         alive = self.energy > 0
+        if w.accident:
+            accident = alive & (rng.random(n) < w.accident)
+            alive &= ~accident
+            self.counts["accidents"] += int(accident.sum())
+            lost = self.energy[accident]
+            if w.cadavres:
+                units = np.bincount(self.cell[accident], lost // w.gain, w.cells).astype(np.int64)
+                self._add_food(units, external=False)  # ce qui déborde est perdu
+                self._lose(int((lost % w.gain).sum()))  # le reste d'une unité aussi
+            else:
+                self._lose(int(lost.sum()))
         self.counts["deaths"] += int(n - alive.sum())
         names = ("population", "brain", "sensor", "energy", "cell", "ident", "lineage")
         for name in (*names, "fed", "poisoned", "motor", "sensor_prev", "last_delta"):
